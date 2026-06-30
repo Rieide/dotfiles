@@ -1,0 +1,13 @@
+# 个人构建笔记，不纳入版本控制
+NOTES.md
+
+# 机器专属的本地覆盖配置
+*local*
+local.zsh
+
+# 操作系统杂项
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude
