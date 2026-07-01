@@ -11,3 +11,6 @@ Thumbs.db
 
 # Claude
 .claude
+
+# tmux 插件代码（由 TPM 按机器各自下载，类似 pip 装的包，不纳入版本控制）
+tmux/.config/tmux/plugins/
