@@ -1,7 +1,7 @@
 # ~/.zshrc - zsh configuration (stow package: zsh -> ~/.zshrc)
 #
 # Keep this file safe to publish. Machine-specific paths, private tokens,
-# work setup, and generated init blocks belong in ~/.zsh.local.
+# work setup, and generated init blocks belong in ~/.zshrc.local.
 
 # If not running interactively, do not do anything.
 [[ -o interactive ]] || return
@@ -46,8 +46,39 @@ alias ll="ls -alF"
 alias la="ls -A"
 alias l="ls -CF"
 
-# Simple prompt until a cross-shell prompt such as starship is added.
-PROMPT="%F{green}%n@%m%f:%F{blue}%~%f%# "
+# Tool compatibility
+command -v batcat >/dev/null 2>&1 && alias bat="batcat"
+command -v fdfind >/dev/null 2>&1 && alias fd="fdfind"
+
+# Modern ls, if installed
+if command -v eza >/dev/null 2>&1; then
+  alias ls="eza --group-directories-first"
+  alias ll="eza -al --group-directories-first --git"
+  alias la="eza -a --group-directories-first"
+  alias tree="eza --tree --group-directories-first"
+fi
+
+# fzf key bindings and completion
+if [[ -t 0 && -t 1 ]]; then
+  [[ -r /usr/share/doc/fzf/examples/key-bindings.zsh ]] && source /usr/share/doc/fzf/examples/key-bindings.zsh
+  [[ -r /usr/share/doc/fzf/examples/completion.zsh ]] && source /usr/share/doc/fzf/examples/completion.zsh
+fi
+
+# Smarter directory jumping
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
+
+# Per-project environment loading
+command -v direnv >/dev/null 2>&1 && eval "$(direnv hook zsh)"
+
+# Better shell history, if installed
+command -v atuin >/dev/null 2>&1 && eval "$(atuin init zsh)"
+
+# Prompt
+if command -v starship >/dev/null 2>&1; then
+  eval "$(starship init zsh)"
+else
+  PROMPT="%F{green}%n@%m%f:%F{blue}%~%f%# "
+fi
 
 # Local overrides, loaded last and never committed.
 [[ -r "${HOME}/.zshrc.local" ]] && source "${HOME}/.zshrc.local"

@@ -2,7 +2,9 @@
 
 Personal roadmap for this stow-based dotfiles repo.
 Environment: Linux / X11, bash + zsh (zsh installed, default shell still bash).
-Already installed: stow, git, fzf, fd, ripgrep (rg), lazygit, tmux, zsh, tldr, nvim.
+Already installed on this WSL machine: stow, git, gh, fzf, fd/fdfind,
+ripgrep (rg), bat/batcat, eza, delta, direnv, zoxide, starship, tmux, zsh,
+tldr, nvim.
 
 Each config below should become its own stow package (same flow as tmux:
 create package → parse/validate → stow → verify).
@@ -11,44 +13,71 @@ create package → parse/validate → stow → verify).
 
 # Part 1 — Dotfiles tooling & configs
 
+## 1.0 Base zsh experience
+
+Goal: build a fast, useful, and understandable zsh setup. Shared behavior goes
+into the stowed `zsh/.zshrc`; machine-specific paths, proxies, secrets, and
+temporary experiments stay in `~/.zshrc.local`.
+
+- [x] Stow-managed `~/.zshrc`
+- [x] Local override via `~/.zshrc.local`
+- [x] Basic history, completion, shell options, colors, and aliases
+- [x] No zsh plugin manager for now; keep config framework-free and explicit
+- [x] Add fzf key bindings and completion
+- [x] Add smarter directory jumping with `zoxide`
+- [x] Add prompt with `starship`
+- [x] Add modern aliases/functions around `eza`, `bat`, `fd`, and `rg`
+- [x] Add `direnv` hook for per-project environments
+- [x] Keep startup fast and understandable; avoid large framework-style config
+- [ ] Deferred: add `atuin` after the basic zsh workflow feels stable
+- [ ] Deferred: evaluate `lazygit` later as part of the Git workflow, not base zsh
+
 ## 1.1 CLI tools to install (not present yet)
-- [ ] `starship` — cross-shell prompt (one config for both bash & zsh)
-- [ ] `zoxide` — smart `cd` (`z proj`, `zi` fuzzy jump); pairs with fzf
-- [ ] `atuin` — shell history in SQLite + fuzzy search + cross-machine sync
-- [ ] `eza` — modern `ls` (icons, git status, tree)
-- [ ] `bat` — `cat` with syntax highlight; also a pager / man colorizer
-- [ ] `delta` — git diff pager (side-by-side, syntax highlight)
-- [ ] `direnv` — auto-load per-directory `.envrc` environments
-- [ ] `gh` — GitHub CLI (PRs, issues, clone)
+- [x] `starship` — cross-shell prompt (one config for both bash & zsh)
+- [x] `zoxide` — smart `cd` (`z proj`, `zi` fuzzy jump); pairs with fzf
+- [ ] Deferred: `atuin` — shell history in SQLite + fuzzy search + cross-machine sync
+- [x] `eza` — modern `ls` (icons, git status, tree)
+- [x] `bat` — `cat` with syntax highlight; also a pager / man colorizer
+- [x] `delta` — git diff pager (side-by-side, syntax highlight)
+- [x] `direnv` — auto-load per-directory `.envrc` environments
+- [x] `gh` — GitHub CLI (PRs, issues, clone)
 
 ## 1.2 Config files to add (as stow packages)
-- [ ] `.gitconfig` — top priority. Wire up `delta`, add aliases, and split identity:
+- [ ] Deferred: `.gitconfig` — next Git-focused task. Wire up `delta`, add aliases, and split identity:
       use `includeIf "gitdir:..."` so personal repos use Rieide/outlook and work
       repos use the work identity automatically (fixes the earlier author-leak issue).
 - [ ] `.editorconfig` — consistent indent/EOL across editors (repo root)
-- [ ] `starship.toml` — prompt config
-- [ ] `zoxide` + `atuin` shell init & config
+- [ ] Optional: `starship.toml` — only add once the default prompt needs tuning
+- [x] `zoxide` shell init
+- [ ] Deferred: `atuin` shell init & config
 - [ ] `ripgrep` config (`~/.config/ripgrep/config`) + `bat` theme
-- [ ] shell configs: bring `.zshrc` / `.bashrc` under stow (mind `*local*` overrides)
+- [x] shell configs: bring `.zshrc` under stow (mind `*local*` overrides)
+- [ ] Decide whether `.bashrc` still needs to be managed after zsh migration
 
 ## 1.3 Structural / reproducibility
-- [ ] `Makefile` or `install.sh` bootstrap — `make install` = stow all packages + install tools
-- [ ] `packages.txt` — the environment's "requirements" (apt / cargo / brew lists)
+- [ ] Deferred: `Makefile` or `install.sh` bootstrap — explicit flags such as
+      `--stow`, `--apt-core`, `--apt-extra`, `--dry-run`, `--all`
+- [ ] Deferred: `packages.txt` — the environment's "requirements" (apt / cargo / brew lists)
 - [ ] secrets: keep using the `*local*` gitignore pattern; if secrets must be
       committed, encrypt with `sops` + `age`
+- [ ] New task: document Ubuntu 20.04 vs 26.04 package differences for Part 1 tools
 
 ## 1.4 Priority order
-1. [ ] `.gitconfig` + `includeIf` identity split (+ delta) — solves a real pain point
-2. [ ] `starship` — unified prompt for bash & zsh
-3. [ ] `zoxide` + `atuin` — jump + history, on top of existing fzf
-4. [ ] `Makefile` one-shot bootstrap — chain stow + package install
+1. [x] Base zsh integrations: starship, fzf, zoxide, eza/bat/fd aliases, direnv
+2. [ ] `.gitconfig` + `includeIf` identity split (+ delta) — solves a real pain point
+3. [ ] Decide whether to add `atuin`
+4. [ ] Add `Makefile` / `install.sh` one-shot bootstrap after the current commit
 
 ---
 
 # Part 2 — Neovim migration: LazyVim → kickstart.nvim
 
-Goal: rebuild a personal kickstart.nvim config on a new machine and manually pick
-which plugins to keep. This is the FULL inventory of the old LazyVim setup
+Goal: stop treating the working-machine Neovim + LazyVim setup as a black box.
+Use the current LazyVim config only as a source snapshot, extract its full plugin
+and Mason-tool inventory, then rebuild a personal Neovim environment gradually
+from kickstart.nvim through real use.
+
+This is the FULL inventory of the old working-machine LazyVim setup
 (base LazyVim, no extras) — nothing pre-filtered. Tick what you want to carry over.
 Source snapshot: 32 lazy.nvim plugins + 8 Mason tools, extracted 2026-07-01.
 
