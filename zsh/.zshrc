@@ -25,6 +25,11 @@ setopt AUTO_CD
 setopt INTERACTIVE_COMMENTS
 setopt NO_BEEP
 
+# PATH entries that are safe to share across machines.
+[[ -d "${HOME}/bin" ]] && path=("${HOME}/bin" $path)
+[[ -d "${HOME}/.local/bin" ]] && path=("${HOME}/.local/bin" $path)
+typeset -U path
+
 # Colors and common aliases
 autoload -Uz colors
 colors
@@ -45,4 +50,4 @@ alias l="ls -CF"
 PROMPT="%F{green}%n@%m%f:%F{blue}%~%f%# "
 
 # Local overrides, loaded last and never committed.
-[[ -r "${HOME}/.zsh.local" ]] && source "${HOME}/.zsh.local"
+[[ -r "${HOME}/.zshrc.local" ]] && source "${HOME}/.zshrc.local"
