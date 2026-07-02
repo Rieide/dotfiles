@@ -55,8 +55,10 @@ temporary experiments stay in `~/.zshrc.local`.
 - [ ] Decide whether `.bashrc` still needs to be managed after zsh migration
 
 ## 1.3 Structural / reproducibility
-- [ ] Deferred: `Makefile` or `install.sh` bootstrap — explicit flags such as
-      `--stow`, `--apt-core`, `--apt-extra`, `--dry-run`, `--all`
+- [x] Add first-pass assertive `install.sh` bootstrap:
+      installs the current preferred toolset, stows selected packages, logs output,
+      fails loudly, and keeps secrets / machine-local files manual.
+- [ ] Collect feedback from the Ubuntu 20.04 working machine and adjust installer
 - [ ] Deferred: `packages.txt` — the environment's "requirements" (apt / cargo / brew lists)
 - [ ] secrets: keep using the `*local*` gitignore pattern; if secrets must be
       committed, encrypt with `sops` + `age`
@@ -66,7 +68,7 @@ temporary experiments stay in `~/.zshrc.local`.
 1. [x] Base zsh integrations: starship, fzf, zoxide, eza/bat/fd aliases, direnv
 2. [ ] `.gitconfig` + `includeIf` identity split (+ delta) — solves a real pain point
 3. [ ] Decide whether to add `atuin`
-4. [ ] Add `Makefile` / `install.sh` one-shot bootstrap after the current commit
+4. [ ] Refine `install.sh` after working-machine migration feedback
 
 ---
 
