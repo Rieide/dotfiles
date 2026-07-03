@@ -93,6 +93,9 @@ vim.g.maplocalleader = ' '
 -- Set to true if you have a Nerd Font installed and selected in the terminal
 vim.g.have_nerd_font = false
 
+-- Make Mason-installed tools available to Neovim-managed plugins and jobs.
+vim.env.PATH = vim.fn.stdpath 'data' .. '/mason/bin:' .. vim.env.PATH
+
 -- [[ Setting options ]]
 --  See `:help vim.o`
 -- NOTE: You can change these options as you wish!
@@ -103,6 +106,7 @@ vim.o.number = true
 vim.o.relativenumber = true
 vim.o.tabstop = 4
 vim.o.softtabstop = 4
+vim.o.shiftwidth = 4
 vim.o.expandtab = true
 vim.o.belloff = 'all'
 
@@ -194,6 +198,10 @@ vim.diagnostic.config {
 
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
+-- Keep tags available as an explicit fallback. In LSP buffers, <C-]> is remapped
+-- to LSP definition so it does not accidentally jump through a stale tags file.
+vim.keymap.set('n', '<leader>]', '<cmd>normal! <C-]><CR>', { desc = 'Tags: jump to tag' })
+
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
 -- is not what someone will guess without a bit more experience.
@@ -216,6 +224,11 @@ vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left wind
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+
+-- Fast buffer switching lives in custom.plugins.bufferline, where number keys
+-- follow the visible bufferline order rather than Vim's internal buffer ids.
+vim.keymap.set('n', '<leader>0', '<cmd>bprevious<CR>', { desc = 'Go to previous buffer' })
+vim.keymap.set('n', '<leader>bd', '<cmd>bdelete<CR>', { desc = '[B]uffer [D]elete' })
 
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
@@ -261,7 +274,17 @@ rtp:prepend(lazypath)
 -- NOTE: Here is where you install your plugins.
 require('lazy').setup({
   -- NOTE: Plugins can be added via a link or github org/name. To run setup automatically, use `opts = {}`
-  { 'NMAC427/guess-indent.nvim', opts = {} },
+  {
+    'NMAC427/guess-indent.nvim',
+    opts = {
+      filetype_exclude = {
+        'netrw',
+        'tutor',
+        'c',
+        'cpp',
+      },
+    },
+  },
 
   -- Alternatively, use `config = function() ... end` for full control over the configuration.
   -- If you prefer to call `setup` explicitly, use:
@@ -323,8 +346,14 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
+        { '<leader>b', group = '[B]uffer' },
+        { '<leader>c', group = '[C]ode' },
+        { '<leader>f', group = '[F]ind' },
+        { '<leader>g', group = '[G]it' },
+        { '<leader>n', group = '[N]otifications' },
         { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
         { '<leader>t', group = '[T]oggle' },
+        { '<leader>x', group = 'Diagnostics' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
         { 'gr', group = 'LSP Actions', mode = { 'n' } },
       },
@@ -414,6 +443,13 @@ require('lazy').setup({
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
+      vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = '[F]ind [F]iles' })
+      vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = '[F]ind by [G]rep' })
+      vim.keymap.set({ 'n', 'v' }, '<leader>fw', builtin.grep_string, { desc = '[F]ind current [W]ord' })
+      vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = '[F]ind [B]uffers' })
+      vim.keymap.set('n', '<leader>fr', builtin.oldfiles, { desc = '[F]ind [R]ecent files' })
+      vim.keymap.set('n', '<leader>fs', builtin.lsp_document_symbols, { desc = '[F]ind document [S]ymbols' })
+      vim.keymap.set('n', '<leader>fS', builtin.lsp_dynamic_workspace_symbols, { desc = '[F]ind workspace [S]ymbols' })
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
       vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
@@ -432,6 +468,14 @@ require('lazy').setup({
         group = vim.api.nvim_create_augroup('telescope-lsp-attach', { clear = true }),
         callback = function(event)
           local buf = event.buf
+
+          -- Definition/declaration list pickers. Direct jump keys live in the LSP
+          -- attach block below; these are for multi-result navigation.
+          vim.keymap.set('n', '<leader>fd', builtin.lsp_definitions, { buffer = buf, desc = '[F]ind [D]efinitions' })
+          vim.keymap.set('n', '<leader>fD', builtin.lsp_declarations, { buffer = buf, desc = '[F]ind [D]eclarations' })
+          vim.keymap.set('n', '<leader>fi', builtin.lsp_implementations, { buffer = buf, desc = '[F]ind [I]mplementations' })
+          vim.keymap.set('n', '<leader>ft', builtin.lsp_type_definitions, { buffer = buf, desc = '[F]ind [T]ype definitions' })
+          vim.keymap.set('n', '<leader>fR', builtin.lsp_references, { buffer = buf, desc = '[F]ind [R]eferences' })
 
           -- Find references for the word under your cursor.
           vim.keymap.set('n', 'grr', builtin.lsp_references, { buffer = buf, desc = '[G]oto [R]eferences' })
@@ -553,6 +597,15 @@ require('lazy').setup({
             vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
           end
 
+          -- Direct jumps. These use the jumplist, so <C-o> jumps back.
+          -- They intentionally make old Vim muscle memory use LSP instead of tags.
+          map('<C-]>', vim.lsp.buf.definition, '[D]efinition')
+          map('gd', vim.lsp.buf.definition, '[G]oto [D]efinition')
+          map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
+          map('gi', vim.lsp.buf.implementation, '[G]oto [I]mplementation')
+          map('gI', vim.lsp.buf.implementation, '[G]oto [I]mplementation')
+          map('K', vim.lsp.buf.hover, 'Hover documentation')
+
           -- Rename the variable under your cursor.
           --  Most Language Servers support renaming across files, etc.
           map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
@@ -600,6 +653,24 @@ require('lazy').setup({
           -- This may be unwanted, since they displace some of your code
           if client and client:supports_method('textDocument/inlayHint', event.buf) then
             map('<leader>th', function() vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf }) end, '[T]oggle Inlay [H]ints')
+          end
+
+          if client and client.name == 'clangd' then
+            map('<leader>ch', function()
+              vim.lsp.buf_request(event.buf, 'textDocument/switchSourceHeader', { uri = vim.uri_from_bufnr(event.buf) }, function(err, result)
+                if err then
+                  vim.notify(err.message, vim.log.levels.ERROR)
+                  return
+                end
+
+                if not result then
+                  vim.notify('No source/header file found', vim.log.levels.WARN)
+                  return
+                end
+
+                vim.cmd.edit(vim.uri_to_fname(result))
+              end)
+            end, '[C]langd switch source/[H]eader')
           end
         end,
       })
@@ -667,6 +738,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         -- You can add other tools here that you want Mason to install
+        'tree-sitter-cli',
       })
 
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -685,10 +757,10 @@ require('lazy').setup({
     cmd = { 'ConformInfo' },
     keys = {
       {
-        '<leader>f',
+        '<leader>cf',
         function() require('conform').format { async = true } end,
         mode = '',
-        desc = '[F]ormat buffer',
+        desc = '[C]ode [F]ormat buffer',
       },
     },
     ---@module 'conform'
@@ -876,19 +948,6 @@ require('lazy').setup({
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
 
-      -- Simple and easy statusline.
-      --  You could remove this setup call if you don't like it,
-      --  and try some other statusline plugin
-      local statusline = require 'mini.statusline'
-      -- Set `use_icons` to true if you have a Nerd Font
-      statusline.setup { use_icons = vim.g.have_nerd_font }
-
-      -- You can configure sections in the statusline by overriding their
-      -- default behavior. For example, here we set the section for
-      -- cursor location to LINE:COLUMN
-      ---@diagnostic disable-next-line: duplicate-set-field
-      statusline.section_location = function() return '%2l:%-2v' end
-
       -- ... and there is more!
       --  Check out: https://github.com/nvim-mini/mini.nvim
     end,
@@ -903,8 +962,14 @@ require('lazy').setup({
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter-intro`
     config = function()
       -- Ensure basic parsers are installed
-      local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
-      require('nvim-treesitter').install(parsers)
+      local parsers = { 'bash', 'c', 'cpp', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+      local has_tree_sitter_cli = vim.fn.executable 'tree-sitter' == 1
+
+      if has_tree_sitter_cli then
+        require('nvim-treesitter').install(parsers)
+      else
+        vim.notify_once('tree-sitter CLI is missing; Mason will install tree-sitter-cli, then restart Neovim to install parsers.', vim.log.levels.WARN)
+      end
 
       ---@param buf integer
       ---@param language string
@@ -940,7 +1005,7 @@ require('lazy').setup({
           if vim.tbl_contains(installed_parsers, language) then
             -- Enable the parser if it is already installed
             treesitter_try_attach(buf, language)
-          elseif vim.tbl_contains(available_parsers, language) then
+          elseif has_tree_sitter_cli and vim.tbl_contains(available_parsers, language) then
             -- If a parser is available in `nvim-treesitter`, auto-install it and enable it after the installation is done
             require('nvim-treesitter').install(language):await(function() treesitter_try_attach(buf, language) end)
           else
@@ -962,17 +1027,17 @@ require('lazy').setup({
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
   -- require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
-  -- require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommended keymaps
+  require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.neo-tree',
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommended keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
   --
   -- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
   -- Or use telescope!

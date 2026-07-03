@@ -103,7 +103,7 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 
 ### Treesitter / editing
 - [ ] `nvim-treesitter/nvim-treesitter` — syntax parsing/highlight `[ks]`
-- [ ] `nvim-treesitter/nvim-treesitter-textobjects` — TS-based text objects
+- [x] `nvim-treesitter/nvim-treesitter-textobjects` — TS-based text objects
 - [ ] `echasnovski/mini.ai` — better a/i text objects `[ks]`
 - [ ] `echasnovski/mini.pairs` — auto-pair brackets/quotes
 - [ ] `windwp/nvim-ts-autotag` — auto close/rename HTML/JSX tags
@@ -111,11 +111,11 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 
 ### UI / appearance
 - [ ] `folke/tokyonight.nvim` — colorscheme `[ks]` (kickstart default)
-- [ ] `catppuccin/nvim` — alternate colorscheme
-- [ ] `nvim-lualine/lualine.nvim` — statusline (vs kickstart's mini.statusline)
-- [ ] `akinsho/bufferline.nvim` — buffer tabs across the top
-- [ ] `folke/noice.nvim` — cmdline / message UI (opinionated, heavier)
-- [ ] `folke/snacks.nvim` — QoL suite: dashboard, notifier, picker, terminal, lazygit
+- [x] `catppuccin/nvim` — alternate colorscheme
+- [x] `nvim-lualine/lualine.nvim` — statusline (vs kickstart's mini.statusline)
+- [x] `akinsho/bufferline.nvim` — buffer tabs across the top
+- [x] `folke/noice.nvim` — cmdline / message UI (opinionated, heavier)
+- [x] `folke/snacks.nvim` — QoL suite: dashboard, notifier, picker, terminal, lazygit
 - [ ] `folke/which-key.nvim` — keymap hint popup `[ks]`
 - [ ] `echasnovski/mini.icons` — icon provider `[dep]`
 - [ ] `MunifTanjim/nui.nvim` — UI component lib `[dep]`
@@ -123,10 +123,10 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 ### Navigation / search / git / diagnostics / sessions
 - [ ] `folke/flash.nvim` — fast jump / motions
 - [ ] `lewis6991/gitsigns.nvim` — git gutter signs `[ks]`
-- [ ] `MagicDuck/grug-far.nvim` — project-wide search & replace UI
-- [ ] `folke/trouble.nvim` — diagnostics / quickfix list UI
+- [x] `MagicDuck/grug-far.nvim` — project-wide search & replace UI
+- [x] `folke/trouble.nvim` — diagnostics / quickfix list UI
 - [ ] `folke/todo-comments.nvim` — highlight TODO/FIX/etc. `[ks]`
-- [ ] `folke/persistence.nvim` — session save & restore
+- [x] `folke/persistence.nvim` — session save & restore
 - [ ] `nvim-lua/plenary.nvim` — Lua utility lib `[dep]`
 
 ### Framework / manager
@@ -149,5 +149,5 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 
 ## 2.3 Follow-up
 - [ ] Port custom keymaps/options/autocmds from old `lua/config/*`
-- [ ] Decide statusline: mini.statusline (kickstart) vs lualine
+- [x] Decide statusline: mini.statusline (kickstart) vs lualine
 - [x] Add the new nvim config as its own stow package under dotfiles

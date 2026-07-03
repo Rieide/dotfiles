@@ -5,4 +5,14 @@
 
 ---@module 'lazy'
 ---@type LazySpec
-return {}
+return {
+  require 'custom.plugins.bufferline',
+  require 'custom.plugins.catppuccin',
+  require 'custom.plugins.grug-far',
+  require 'custom.plugins.lualine',
+  require 'custom.plugins.noice',
+  require 'custom.plugins.persistence',
+  require 'custom.plugins.snacks',
+  require 'custom.plugins.treesitter-textobjects',
+  require 'custom.plugins.trouble',
+}
