@@ -43,6 +43,7 @@ APT_PREFERRED_PACKAGES=(
 )
 
 STOW_PACKAGES=(
+  starship
   tmux
   zsh
 )

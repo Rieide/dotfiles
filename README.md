@@ -39,6 +39,10 @@ tmux/
 └── .config/
     └── tmux/
         └── tmux.conf
+
+starship/
+└── .config/
+    └── starship.toml
 ```
 
 Shared configuration belongs in the stowed package. Local configuration belongs

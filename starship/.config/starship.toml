@@ -1,0 +1,82 @@
+# ~/.config/starship.toml - prompt configuration (stow package: starship)
+
+add_newline = true
+format = "$username$hostname$directory$git_branch$git_status$shell$python$c$cpp$dotnet$lua$cmd_duration$status$line_break$character"
+right_format = ""
+
+[character]
+success_symbol = "[>>](bold green)"
+error_symbol = "[>>](bold red)"
+vimcmd_symbol = "[<<](bold green)"
+vimcmd_visual_symbol = "[<<](bold yellow)"
+vimcmd_replace_symbol = "[<<](bold purple)"
+vimcmd_replace_one_symbol = "[<<](bold purple)"
+
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+style = "cyan bold"
+
+[git_branch]
+symbol = " "
+format = "on [$symbol$branch(:$remote_branch)]($style) "
+style = "bold purple"
+
+[git_status]
+format = "([$all_status$ahead_behind]($style) )"
+style = "red bold"
+
+[cmd_duration]
+min_time = 500
+format = "took [$duration]($style) "
+style = "yellow bold"
+
+[status]
+disabled = false
+format = "[$symbol$status]($style) "
+symbol = "exit "
+style = "bold red"
+
+[time]
+disabled = true
+
+[username]
+show_always = false
+format = "[$user]($style)@"
+style_user = "yellow bold"
+style_root = "red bold"
+
+[hostname]
+ssh_only = true
+format = "[$hostname]($style) in "
+style = "green dimmed bold"
+
+[shell]
+disabled = false
+format = "[$indicator]($style) "
+bash_indicator = "bash"
+zsh_indicator = "zsh"
+fish_indicator = "fish"
+powershell_indicator = "ps"
+style = "white bold"
+
+[python]
+format = 'via [$symbol($version )(\($virtualenv\) )]($style)'
+style = "yellow bold"
+
+[c]
+format = "via [$symbol($version )]($style)"
+style = "149 bold"
+
+[cpp]
+disabled = false
+format = "via [$symbol($version )]($style)"
+style = "149 bold"
+
+[dotnet]
+format = "via [$symbol($version )(🎯 $tfm )]($style)"
+style = "blue bold"
+
+[lua]
+format = "via [$symbol($version )]($style)"
+style = "bold blue"

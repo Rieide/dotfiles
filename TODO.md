@@ -47,7 +47,7 @@ temporary experiments stay in `~/.zshrc.local`.
       use `includeIf "gitdir:..."` so personal repos use Rieide/outlook and work
       repos use the work identity automatically (fixes the earlier author-leak issue).
 - [ ] `.editorconfig` — consistent indent/EOL across editors (repo root)
-- [ ] Optional: `starship.toml` — only add once the default prompt needs tuning
+- [x] `starship.toml` — custom two-line prompt with git, duration, status, shell, and selected language modules
 - [x] `zoxide` shell init
 - [ ] Deferred: `atuin` shell init & config
 - [ ] `ripgrep` config (`~/.config/ripgrep/config`) + `bat` theme
