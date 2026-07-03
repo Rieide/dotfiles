@@ -1,7 +1,7 @@
 # ~/.config/starship.toml - prompt configuration (stow package: starship)
 
 add_newline = true
-format = "$username$hostname$directory$git_branch$git_status$shell$python$c$cpp$dotnet$lua$cmd_duration$status$line_break$character"
+format = "$username$hostname$directory$git_branch$git_status$python$c$cpp$dotnet$lua$cmd_duration$status$line_break$character"
 right_format = ""
 
 [character]
@@ -25,6 +25,17 @@ style = "bold purple"
 [git_status]
 format = "([$all_status$ahead_behind]($style) )"
 style = "red bold"
+conflicted = "conflict "
+ahead = "ahead "
+behind = "behind "
+diverged = "diverged "
+up_to_date = ""
+untracked = "untracked "
+stashed = "stashed "
+modified = "modified "
+staged = "staged "
+renamed = "renamed "
+deleted = "deleted "
 
 [cmd_duration]
 min_time = 500
