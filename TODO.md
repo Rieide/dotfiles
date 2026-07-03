@@ -150,4 +150,4 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 ## 2.3 Follow-up
 - [ ] Port custom keymaps/options/autocmds from old `lua/config/*`
 - [ ] Decide statusline: mini.statusline (kickstart) vs lualine
-- [ ] Add the new nvim config as its own stow package under dotfiles
+- [x] Add the new nvim config as its own stow package under dotfiles
