@@ -85,7 +85,7 @@ command -v tool >/dev/null 2>&1 && ...
 The config can take advantage of modern tools, but it should not make login or
 interactive shell startup fragile.
 
-### Keep the Installer Assertive
+### Keep the Installer Best-Effort and Auditable
 
 The installer has a different job from the shell config.
 
