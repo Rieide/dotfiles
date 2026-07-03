@@ -85,15 +85,17 @@ interactive shell startup fragile.
 
 The installer has a different job from the shell config.
 
-Shell config is defensive. The installer is assertive.
+Shell config is defensive. The installer is best-effort and auditable.
 
-The installer should install the current preferred toolset, fail loudly when that
-cannot be done, and write logs that make the failure easy to inspect. It should
-not silently downgrade tools, hide errors, or try to support every old
-distribution release.
+The installer should install the current preferred toolset in a best-effort way.
+Failures should be loud and auditable in the log, but they should not abort later
+steps that could still succeed. This keeps the bootstrap comfortable: one missing
+package or temporary network failure should not prevent unrelated tools or Stow
+links from being applied.
 
-This repository follows a "current machines, current tools" model. Older systems
-may require manual repair after reading the installer log.
+This repository follows a "current machines, current tools" model. The current
+Linux target is Ubuntu 26.04; older releases such as Ubuntu 20.04 are out of
+scope unless support is added deliberately later.
 
 ### Do Not Automate Private State
 
@@ -118,12 +120,13 @@ This keeps common improvements flowing through one main history.
 - install the current preferred tools
 - run Stow for selected packages
 - log what happened
-- fail loudly on errors
+- record failures loudly, summarize them at the end, and keep going
 - leave local/private configuration manual
 
-It is not intended to be a compatibility layer for every Linux release. When it
-fails on a machine, the expected workflow is to inspect the log, fix the machine
-or the script intentionally, and record the lesson in the roadmap.
+It is not intended to be a compatibility layer for every Linux release. When a
+step fails on a machine, the expected workflow is to inspect the log, fix the
+machine or the script intentionally, and rerun the bootstrap. Successful earlier
+and later steps should remain useful.
 
 ## Roadmap
 

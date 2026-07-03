@@ -1,7 +1,7 @@
 # TODO — dotfiles
 
 Personal roadmap for this stow-based dotfiles repo.
-Environment: Linux / X11, bash + zsh (zsh installed, default shell still bash).
+Target environment: Ubuntu 26.04 / Linux / X11, zsh-oriented. Older Ubuntu releases are out of scope unless support is added deliberately.
 Already installed on this WSL machine: stow, git, gh, fzf, fd/fdfind,
 ripgrep (rg), bat/batcat, eza, delta, direnv, zoxide, starship, tmux, zsh,
 tldr, nvim.
@@ -55,20 +55,20 @@ temporary experiments stay in `~/.zshrc.local`.
 - [ ] Decide whether `.bashrc` still needs to be managed after zsh migration
 
 ## 1.3 Structural / reproducibility
-- [x] Add first-pass assertive `install.sh` bootstrap:
-      installs the current preferred toolset, stows selected packages, logs output,
-      fails loudly, and keeps secrets / machine-local files manual.
-- [ ] Collect feedback from the Ubuntu 20.04 working machine and adjust installer
+- [x] Add best-effort `install.sh` bootstrap:
+      installs the current preferred Ubuntu 26.04 toolset, logs failures loudly,
+      keeps going after install failures, stows packages only when their commands
+      are available afterward, and keeps secrets / machine-local files manual.
 - [ ] Deferred: `packages.txt` — the environment's "requirements" (apt / cargo / brew lists)
 - [ ] secrets: keep using the `*local*` gitignore pattern; if secrets must be
       committed, encrypt with `sops` + `age`
-- [ ] New task: document Ubuntu 20.04 vs 26.04 package differences for Part 1 tools
+- [ ] Document Ubuntu 26.04 package expectations for Part 1 tools
 
 ## 1.4 Priority order
 1. [x] Base zsh integrations: starship, fzf, zoxide, eza/bat/fd aliases, direnv
 2. [ ] `.gitconfig` + `includeIf` identity split (+ delta) — solves a real pain point
 3. [ ] Decide whether to add `atuin`
-4. [ ] Refine `install.sh` after working-machine migration feedback
+4. [ ] Refine `install.sh` after Ubuntu 26.04 migration feedback
 
 ---
 
