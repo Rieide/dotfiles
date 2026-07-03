@@ -91,3 +91,16 @@ style = "blue bold"
 [lua]
 format = "via [$symbol($version )]($style)"
 style = "bold blue"
+
+[sudo]
+disabled = false
+format = "[sudo]($style) "
+style = "bold blue"
+
+[jobs]
+disabled = false
+format = "[$symbol$number]($style) "
+symbol = "jobs "
+style = "bold blue"
+number_threshold = 1
+symbol_threshold = 1
