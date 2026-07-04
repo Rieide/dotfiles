@@ -13,6 +13,7 @@ return {
   require 'custom.plugins.noice',
   require 'custom.plugins.persistence',
   require 'custom.plugins.snacks',
+  require 'custom.plugins.telescope',
   require 'custom.plugins.treesitter-textobjects',
   require 'custom.plugins.trouble',
 }

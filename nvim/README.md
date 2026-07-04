@@ -9,11 +9,33 @@ blindly.
 
 Current migration state:
 
-- imported the current kickstart `init.lua`
-- imported the kickstart health helper
-- imported the empty `lua/custom/plugins/init.lua` extension point
-- imported `.stylua.toml` and `lazy-lock.json`
+- stowed as the active `~/.config/nvim` package
+- based on kickstart.nvim with local plugin modules under
+  `lua/custom/plugins`
+- Telescope is the primary picker
+- Neo-tree is the file explorer
+- bufferline owns the top buffer UI and visible-buffer number jumps
+- lualine owns the statusline and winbar
+- Noice owns message UI while keeping the classic bottom cmdline
+- Snacks is limited to low-conflict modules: bigfile, quickfile, terminal, and
+  indent/chunk scope UI
+- Conform has format-on-save disabled; use `<leader>cf` for intentional manual
+  formatting
+- clangd is configured with compile database warnings for C/C++ buffers
 
-The package is not stowed yet because the same files still exist as regular
-files under `~/.config/nvim`. Stow ownership should be switched deliberately
-after the imported snapshot is reviewed.
+Useful validation commands:
+
+```sh
+/snap/bin/nvim --headless '+lua print("nvim-ok")' '+quitall'
+git diff --check
+```
+
+For clean bootstrap simulation, use temporary XDG directories before running
+Lazy sync:
+
+```sh
+XDG_DATA_HOME=/tmp/nvim-data-bootstrap \
+XDG_CACHE_HOME=/tmp/nvim-cache-bootstrap \
+XDG_STATE_HOME=/tmp/nvim-state-bootstrap \
+/snap/bin/nvim --headless '+Lazy! sync' '+quitall'
+```

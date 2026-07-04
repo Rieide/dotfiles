@@ -18,7 +18,23 @@ return {
   ---@module 'neo-tree'
   ---@type neotree.Config
   opts = {
+    close_if_last_window = false,
+    window = {
+      position = 'left',
+      width = 40,
+    },
     filesystem = {
+      follow_current_file = {
+        enabled = true,
+      },
+      filtered_items = {
+        hide_dotfiles = false,
+        hide_by_name = {
+          '.git',
+          'build',
+          'node_modules',
+        },
+      },
       window = {
         mappings = {
           ['\\'] = 'close_window',

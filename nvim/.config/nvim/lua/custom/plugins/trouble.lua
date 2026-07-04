@@ -13,5 +13,45 @@ return {
   },
   ---@module 'trouble'
   ---@type trouble.Config
-  opts = {},
+  opts = {
+    focus = false,
+    win = {
+      position = 'bottom',
+      size = 12,
+    },
+    modes = {
+      diagnostics = {
+        win = {
+          position = 'bottom',
+          size = 12,
+        },
+      },
+      lsp = {
+        focus = false,
+        win = {
+          position = 'bottom',
+          size = 12,
+        },
+      },
+      loclist = {
+        win = {
+          position = 'bottom',
+          size = 12,
+        },
+      },
+      qflist = {
+        win = {
+          position = 'bottom',
+          size = 12,
+        },
+      },
+      symbols = {
+        focus = false,
+        win = {
+          position = 'right',
+          size = 40,
+        },
+      },
+    },
+  },
 }

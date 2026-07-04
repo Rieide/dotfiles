@@ -19,6 +19,37 @@ return {
   },
   opts = {
     bigfile = { enabled = true },
+    indent = {
+      enabled = true,
+      indent = {
+        enabled = true,
+        char = '│',
+      },
+      animate = {
+        enabled = true,
+        style = 'out',
+        easing = 'linear',
+        duration = {
+          step = 15,
+          total = 250,
+        },
+      },
+      scope = {
+        enabled = true,
+        char = '│',
+        underline = false,
+      },
+      chunk = {
+        enabled = true,
+        char = {
+          corner_top = '╭',
+          corner_bottom = '╰',
+          horizontal = '─',
+          vertical = '│',
+          arrow = '>',
+        },
+      },
+    },
     quickfile = { enabled = true },
 
     -- Keep Telescope/Noice/default vim.ui.input as the primary picker/message/input UI for now.

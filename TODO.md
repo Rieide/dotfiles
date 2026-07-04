@@ -90,44 +90,53 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 ## 2.1 All 32 plugins
 
 ### Completion / snippets
-- [ ] `Saghen/blink.cmp` — completion engine `[ks]` (port my custom blink.lua)
+- [x] `Saghen/blink.cmp` — completion engine `[ks]`; configured auto menu,
+      manual docs popup, and Tab/S-Tab candidate movement
 - [ ] `rafamadriz/friendly-snippets` — snippet collection `[dep]`
 
 ### LSP / formatting / lint
-- [ ] `neovim/nvim-lspconfig` — LSP server configs `[ks]`
-- [ ] `mason-org/mason.nvim` — LSP/tool installer `[ks]`
-- [ ] `mason-org/mason-lspconfig.nvim` — bridge mason ↔ lspconfig `[ks]`
-- [ ] `stevearc/conform.nvim` — formatter runner `[ks]`
+- [x] `neovim/nvim-lspconfig` — LSP server configs `[ks]`; clangd tuned with
+      compile database warnings
+- [x] `mason-org/mason.nvim` — LSP/tool installer `[ks]`; rounded UI, no auto
+      update, 48h check debounce
+- [x] `mason-org/mason-lspconfig.nvim` — bridge mason ↔ lspconfig `[ks]`;
+      automatic enable disabled
+- [x] `stevearc/conform.nvim` — formatter runner `[ks]`; format-on-save
+      disabled, manual `<leader>cf` retained
 - [ ] `folke/lazydev.nvim` — Lua/nvim-config LSP dev `[ks]`
 - [ ] `mfussenegger/nvim-lint` — standalone linter runner
 
 ### Treesitter / editing
-- [ ] `nvim-treesitter/nvim-treesitter` — syntax parsing/highlight `[ks]`
+- [x] `nvim-treesitter/nvim-treesitter` — syntax parsing/highlight `[ks]`
 - [x] `nvim-treesitter/nvim-treesitter-textobjects` — TS-based text objects
-- [ ] `echasnovski/mini.ai` — better a/i text objects `[ks]`
+- [x] `echasnovski/mini.ai` — better a/i text objects `[ks]`
 - [ ] `echasnovski/mini.pairs` — auto-pair brackets/quotes
 - [ ] `windwp/nvim-ts-autotag` — auto close/rename HTML/JSX tags
 - [ ] `folke/ts-comments.nvim` — commenting enhancement (nvim 0.10+)
 
 ### UI / appearance
-- [ ] `folke/tokyonight.nvim` — colorscheme `[ks]` (kickstart default)
+- [x] `folke/tokyonight.nvim` — colorscheme `[ks]`; current default is
+      `tokyonight-night`
 - [x] `catppuccin/nvim` — alternate colorscheme
 - [x] `nvim-lualine/lualine.nvim` — statusline (vs kickstart's mini.statusline)
 - [x] `akinsho/bufferline.nvim` — buffer tabs across the top
 - [x] `folke/noice.nvim` — cmdline / message UI (opinionated, heavier)
-- [x] `folke/snacks.nvim` — QoL suite: dashboard, notifier, picker, terminal, lazygit
-- [ ] `folke/which-key.nvim` — keymap hint popup `[ks]`
+- [x] `folke/snacks.nvim` — QoL suite; currently using bigfile, quickfile,
+      terminal, and indent/chunk scope UI
+- [x] `folke/which-key.nvim` — keymap hint popup `[ks]`
 - [ ] `echasnovski/mini.icons` — icon provider `[dep]`
-- [ ] `MunifTanjim/nui.nvim` — UI component lib `[dep]`
+- [x] `MunifTanjim/nui.nvim` — UI component lib `[dep]`
 
 ### Navigation / search / git / diagnostics / sessions
 - [ ] `folke/flash.nvim` — fast jump / motions
-- [ ] `lewis6991/gitsigns.nvim` — git gutter signs `[ks]`
+- [x] `lewis6991/gitsigns.nvim` — git gutter signs `[ks]`; signs use
+      `A/M/D`, untracked files remain unattached, deeper Git workflow deferred
 - [x] `MagicDuck/grug-far.nvim` — project-wide search & replace UI
 - [x] `folke/trouble.nvim` — diagnostics / quickfix list UI
-- [ ] `folke/todo-comments.nvim` — highlight TODO/FIX/etc. `[ks]`
+- [x] `folke/todo-comments.nvim` — highlight TODO/FIX/etc. `[ks]`; signs
+      disabled, text highlight only
 - [x] `folke/persistence.nvim` — session save & restore
-- [ ] `nvim-lua/plenary.nvim` — Lua utility lib `[dep]`
+- [x] `nvim-lua/plenary.nvim` — Lua utility lib `[dep]`
 
 ### Framework / manager
 - [ ] `LazyVim/LazyVim` — the distro being abandoned `[drop]`
@@ -136,18 +145,21 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 ## 2.2 All 8 Mason tools (LSP / formatters — NOT plugins; install separately)
 
 ### LSP servers
-- [ ] clangd — C/C++
-- [ ] lua-language-server — Lua
+- [x] clangd — C/C++
+- [x] lua-language-server — Lua
 - [ ] pyright — Python
 - [ ] rust-analyzer — Rust
 - [ ] typescript-language-server — TS/JS
 
 ### Formatters / CLI
-- [ ] stylua — Lua formatter
+- [x] stylua — Lua formatter
 - [ ] shfmt — shell formatter
-- [ ] tree-sitter-cli — treesitter CLI
+- [x] tree-sitter-cli — treesitter CLI
 
 ## 2.3 Follow-up
 - [ ] Port custom keymaps/options/autocmds from old `lua/config/*`
 - [x] Decide statusline: mini.statusline (kickstart) vs lualine
 - [x] Add the new nvim config as its own stow package under dotfiles
+- [x] Polish installed plugin behavior before adding more plugins
+- [ ] Low priority: decide whether `flash.nvim`, `nvim-lint`, `lazydev.nvim`,
+      Python/Rust/TypeScript LSPs, and `shfmt` are actually needed

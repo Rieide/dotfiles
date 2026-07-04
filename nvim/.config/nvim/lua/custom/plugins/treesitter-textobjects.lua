@@ -21,6 +21,8 @@ return {
     { 'if', select_textobject '@function.inner', mode = { 'x', 'o' }, desc = 'Inside function' },
     { 'ac', select_textobject '@class.outer', mode = { 'x', 'o' }, desc = 'Around class' },
     { 'ic', select_textobject '@class.inner', mode = { 'x', 'o' }, desc = 'Inside class' },
+    { ']]', goto_next_start '@function.outer', mode = { 'n', 'x', 'o' }, desc = 'Next function start' },
+    { '[[', goto_previous_start '@function.outer', mode = { 'n', 'x', 'o' }, desc = 'Previous function start' },
     { ']f', goto_next_start '@function.outer', mode = { 'n', 'x', 'o' }, desc = 'Next function start' },
     { '[f', goto_previous_start '@function.outer', mode = { 'n', 'x', 'o' }, desc = 'Previous function start' },
     { ']C', goto_next_start '@class.outer', mode = { 'n', 'x', 'o' }, desc = 'Next class start' },

@@ -1,0 +1,23 @@
+# Copy this file to a C/C++ project root as `.clang-format` when you want to
+# use the personal style below for that project.
+BasedOnStyle: LLVM
+
+ColumnLimit: 100
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+
+AccessModifierOffset: -4
+NamespaceIndentation: None
+
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+BreakBeforeBraces: Attach
+SpaceBeforeParens: ControlStatements
+SpacesBeforeTrailingComments: 2
+
+SortIncludes: Never

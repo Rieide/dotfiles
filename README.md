@@ -10,19 +10,19 @@ to change deliberately.
 
 ## Current Scope
 
-The repository currently focuses on a small base environment:
+The repository currently tracks the common parts of my daily Linux development
+environment:
 
 - `zsh` as the interactive shell
 - `tmux` as the terminal multiplexer
+- `starship` as the shell prompt
+- `nvim` as an active Neovim configuration package, based on kickstart.nvim and
+  grown through explicit plugin choices instead of carrying LazyVim wholesale
 - shell-adjacent CLI tools such as `fzf`, `zoxide`, `eza`, `bat`, `ripgrep`,
-  `direnv`, `starship`, `gh`, and `delta`
-- a first-pass bootstrap script for installing the current preferred toolset and
+  `direnv`, `gh`, and `delta`
+- reusable templates, currently including a personal `clang-format` style
+- a best-effort bootstrap script for installing the current preferred toolset and
   stowing selected packages
-
-The Neovim configuration is intentionally tracked as a future migration project.
-The plan is to move from an existing LazyVim setup toward a personal
-kickstart.nvim-based configuration by choosing plugins through actual use instead
-of copying a black-box distribution wholesale.
 
 ## Repository Shape
 
@@ -43,10 +43,29 @@ tmux/
 starship/
 └── .config/
     └── starship.toml
+
+nvim/
+├── README.md
+└── .config/
+    └── nvim/
+        ├── init.lua
+        ├── lazy-lock.json
+        └── lua/
 ```
 
 Shared configuration belongs in the stowed package. Local configuration belongs
 outside the repository.
+
+Not every top-level directory is a Stow package. `templates/` contains files
+that are copied into a project only when needed, such as:
+
+```text
+templates/
+└── clang-format/
+    └── personal.clang-format
+```
+
+The Neovim package has its own short notes in `nvim/README.md`.
 
 ## Shared vs Local Configuration
 
