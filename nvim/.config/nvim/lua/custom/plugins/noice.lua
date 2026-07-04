@@ -12,7 +12,8 @@ return {
   },
   opts = {
     cmdline = {
-      enabled = false,
+      enabled = true,
+      view = 'cmdline',
     },
     popupmenu = {
       enabled = false,

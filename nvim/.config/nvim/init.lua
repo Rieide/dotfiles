@@ -472,7 +472,7 @@ require('lazy').setup({
           -- Definition/declaration list pickers. Direct jump keys live in the LSP
           -- attach block below; these are for multi-result navigation.
           vim.keymap.set('n', '<leader>fd', builtin.lsp_definitions, { buffer = buf, desc = '[F]ind [D]efinitions' })
-          vim.keymap.set('n', '<leader>fD', builtin.lsp_declarations, { buffer = buf, desc = '[F]ind [D]eclarations' })
+          vim.keymap.set('n', '<leader>fD', vim.lsp.buf.declaration, { buffer = buf, desc = '[F]ind [D]eclarations' })
           vim.keymap.set('n', '<leader>fi', builtin.lsp_implementations, { buffer = buf, desc = '[F]ind [I]mplementations' })
           vim.keymap.set('n', '<leader>ft', builtin.lsp_type_definitions, { buffer = buf, desc = '[F]ind [T]ype definitions' })
           vim.keymap.set('n', '<leader>fR', builtin.lsp_references, { buffer = buf, desc = '[F]ind [R]eferences' })
