@@ -26,6 +26,7 @@ temporary experiments stay in `~/.zshrc.local`.
 - [x] Add fzf key bindings and completion
 - [x] Add smarter directory jumping with `zoxide`
 - [x] Add prompt with `starship`
+- [x] Add inline history suggestions with `zsh-autosuggestions`
 - [x] Add modern aliases/functions around `eza`, `bat`, `fd`, and `rg`
 - [x] Add `direnv` hook for per-project environments
 - [x] Keep startup fast and understandable; avoid large framework-style config
@@ -39,6 +40,7 @@ temporary experiments stay in `~/.zshrc.local`.
 - [x] `eza` — modern `ls` (icons, git status, tree)
 - [x] `bat` — `cat` with syntax highlight; also a pager / man colorizer
 - [x] `delta` — git diff pager (side-by-side, syntax highlight)
+- [x] `zsh-autosuggestions` — inline history suggestions while typing
 - [x] `direnv` — auto-load per-directory `.envrc` environments
 - [x] `gh` — GitHub CLI (PRs, issues, clone)
 

@@ -41,6 +41,7 @@ APT_BASE_PACKAGES=(
 APT_PREFERRED_PACKAGES=(
   bat
   git-delta
+  zsh-autosuggestions
 )
 
 STOW_PACKAGES=(

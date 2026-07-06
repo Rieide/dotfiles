@@ -64,6 +64,9 @@ if [[ -t 0 && -t 1 ]]; then
   [[ -r /usr/share/doc/fzf/examples/completion.zsh ]] && source /usr/share/doc/fzf/examples/completion.zsh
 fi
 
+# Inline history suggestions
+[[ -r /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
 # Smarter directory jumping
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 
