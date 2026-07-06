@@ -91,7 +91,7 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 
 ### Completion / snippets
 - [x] `Saghen/blink.cmp` — completion engine `[ks]`; configured auto menu,
-      manual docs popup, and Tab/S-Tab candidate movement
+      manual docs popup, and default completion keymaps
 - [ ] `rafamadriz/friendly-snippets` — snippet collection `[dep]`
 
 ### LSP / formatting / lint
