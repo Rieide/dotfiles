@@ -147,13 +147,13 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 ### LSP servers
 - [x] clangd — C/C++
 - [x] lua-language-server — Lua
-- [ ] pyright — Python
+- [x] pyright — Python
 - [ ] rust-analyzer — Rust
-- [ ] typescript-language-server — TS/JS
+- [x] typescript-language-server — TS/JS
 
 ### Formatters / CLI
 - [x] stylua — Lua formatter
-- [ ] shfmt — shell formatter
+- [x] shfmt — shell formatter
 - [x] tree-sitter-cli — treesitter CLI
 
 ## 2.3 Follow-up
@@ -162,4 +162,4 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 - [x] Add the new nvim config as its own stow package under dotfiles
 - [x] Polish installed plugin behavior before adding more plugins
 - [ ] Low priority: decide whether `flash.nvim`, `nvim-lint`, `lazydev.nvim`,
-      Python/Rust/TypeScript LSPs, and `shfmt` are actually needed
+      Rust LSP, `ruff`, and `shellcheck` should be wired into Neovim diagnostics

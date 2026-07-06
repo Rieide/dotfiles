@@ -397,7 +397,7 @@ require('lazy').setup({
         opts = {
           ui = {
             border = 'rounded',
-            backdrop = 30,
+            backdrop = 70,
           },
         },
       },
@@ -603,16 +603,14 @@ require('lazy').setup({
           },
         },
         -- gopls = {},
-        -- pyright = {},
+        pyright = {},
         -- rust_analyzer = {},
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
-
-        stylua = {}, -- Used to format Lua code
+        ts_ls = {},
 
         -- Special Lua Config, as recommended by neovim help docs
         lua_ls = {
@@ -656,11 +654,18 @@ require('lazy').setup({
       --    :Mason
       --
       -- You can press `g?` for help in this menu.
-      local ensure_installed = vim.tbl_keys(servers or {})
-      vim.list_extend(ensure_installed, {
-        -- You can add other tools here that you want Mason to install
+      local ensure_installed = {
+        'clang-format',
+        'clangd',
+        'lua-language-server',
+        'pyright',
+        'ruff',
+        'shellcheck',
+        'shfmt',
+        'stylua',
         'tree-sitter-cli',
-      })
+        'typescript-language-server',
+      }
 
       require('mason-lspconfig').setup {
         automatic_enable = false,
