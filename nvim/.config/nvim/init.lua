@@ -146,6 +146,8 @@ vim.o.timeoutlen = 300
 -- Configure how new splits should be opened
 vim.o.splitright = true
 vim.o.splitbelow = true
+vim.o.equalalways = true
+vim.o.eadirection = 'hor'
 
 -- Sets how neovim will display certain whitespace characters in the editor.
 --  See `:help 'list'`
@@ -248,6 +250,23 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function() vim.hl.on_yank() end,
+})
+
+local window_resize_group = vim.api.nvim_create_augroup('kickstart-window-resize', { clear = true })
+
+vim.api.nvim_create_autocmd('FileType', {
+  desc = 'Keep Neo-tree width fixed while balancing editor windows',
+  group = window_resize_group,
+  pattern = 'neo-tree',
+  callback = function() vim.wo.winfixwidth = true end,
+})
+
+vim.api.nvim_create_autocmd({ 'VimResized', 'WinNew', 'WinClosed' }, {
+  desc = 'Rebalance editor windows after layout changes',
+  group = window_resize_group,
+  callback = function()
+    vim.schedule(function() vim.cmd 'wincmd =' end)
+  end,
 })
 
 -- [[ Install `lazy.nvim` plugin manager ]]

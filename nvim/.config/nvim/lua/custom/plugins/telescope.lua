@@ -42,7 +42,7 @@ return {
           flip_columns = 120,
         },
         winblend = 30,
-        initial_mode = 'normal',
+        initial_mode = 'insert',
         border = true,
         path_display = { 'smart' },
       },

@@ -1,5 +1,7 @@
 local keys = {
   { '<leader>bp', '<Cmd>BufferLinePick<CR>', desc = '[B]uffer [P]ick' },
+  { '<leader><Left>', '<Cmd>BufferLineCyclePrev<CR>', desc = 'Previous buffer' },
+  { '<leader><Right>', '<Cmd>BufferLineCycleNext<CR>', desc = 'Next buffer' },
   { '<leader>bn', '<Cmd>BufferLineCycleNext<CR>', desc = '[B]uffer [N]ext' },
   { '<leader>bN', '<Cmd>BufferLineCyclePrev<CR>', desc = '[B]uffer Previous' },
 }
