@@ -23,6 +23,8 @@ Current migration state:
   formatting
 - clangd is configured with compile database warnings for C/C++ buffers
 
+Practice notes for daily Neovim use live in `PRACTICE.md`.
+
 Useful validation commands:
 
 ```sh

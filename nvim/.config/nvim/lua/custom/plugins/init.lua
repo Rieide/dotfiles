@@ -8,8 +8,11 @@
 return {
   require 'custom.plugins.bufferline',
   require 'custom.plugins.catppuccin',
+  require 'custom.plugins.flash',
   require 'custom.plugins.grug-far',
   require 'custom.plugins.kanagawa',
+  require 'custom.plugins.lazydev',
+  require 'custom.plugins.lint',
   require 'custom.plugins.lualine',
   require 'custom.plugins.noice',
   require 'custom.plugins.persistence',

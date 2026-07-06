@@ -52,7 +52,8 @@ temporary experiments stay in `~/.zshrc.local`.
 - [ ] Deferred: `atuin` shell init & config
 - [ ] `ripgrep` config (`~/.config/ripgrep/config`) + `bat` theme
 - [x] shell configs: bring `.zshrc` under stow (mind `*local*` overrides)
-- [ ] Decide whether `.bashrc` still needs to be managed after zsh migration
+- [x] Decide whether `.bashrc` still needs to be managed after zsh migration:
+      keep it unmanaged and leave the machine's existing file as-is
 
 ## 1.3 Structural / reproducibility
 - [x] Add best-effort `install.sh` bootstrap:
@@ -68,7 +69,7 @@ temporary experiments stay in `~/.zshrc.local`.
 1. [x] Base zsh integrations: starship, fzf, zoxide, eza/bat/fd aliases, direnv
 2. [ ] `.gitconfig` + `includeIf` identity split (+ delta) — solves a real pain point
 3. [ ] Decide whether to add `atuin`
-4. [ ] Refine `install.sh` after Ubuntu 26.04 migration feedback
+4. [x] Refine `install.sh` after Ubuntu 26.04 migration feedback
 
 ---
 
@@ -92,7 +93,8 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 ### Completion / snippets
 - [x] `Saghen/blink.cmp` — completion engine `[ks]`; configured auto menu,
       manual docs popup, and default completion keymaps
-- [ ] `rafamadriz/friendly-snippets` — snippet collection `[dep]`
+- [x] `rafamadriz/friendly-snippets` — snippet collection `[dep]`;
+      loaded through LuaSnip for blink.cmp snippet completions
 
 ### LSP / formatting / lint
 - [x] `neovim/nvim-lspconfig` — LSP server configs `[ks]`; clangd tuned with
@@ -103,16 +105,19 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
       automatic enable disabled
 - [x] `stevearc/conform.nvim` — formatter runner `[ks]`; format-on-save
       disabled, manual `<leader>cf` retained
-- [ ] `folke/lazydev.nvim` — Lua/nvim-config LSP dev `[ks]`
-- [ ] `mfussenegger/nvim-lint` — standalone linter runner
+- [x] `folke/lazydev.nvim` — Lua/nvim-config LSP dev `[ks]`
+- [x] `mfussenegger/nvim-lint` — standalone linter runner; shell scripts
+      linted with Mason-managed `shellcheck`
 
 ### Treesitter / editing
 - [x] `nvim-treesitter/nvim-treesitter` — syntax parsing/highlight `[ks]`
 - [x] `nvim-treesitter/nvim-treesitter-textobjects` — TS-based text objects
 - [x] `echasnovski/mini.ai` — better a/i text objects `[ks]`
-- [ ] `echasnovski/mini.pairs` — auto-pair brackets/quotes
-- [ ] `windwp/nvim-ts-autotag` — auto close/rename HTML/JSX tags
-- [ ] `folke/ts-comments.nvim` — commenting enhancement (nvim 0.10+)
+- [x] `echasnovski/mini.pairs` — `[drop]`; current config already uses
+      `windwp/nvim-autopairs`
+- [x] `windwp/nvim-ts-autotag` — `[drop]`; no current HTML/JSX/TSX workflow
+- [x] `folke/ts-comments.nvim` — `[drop]`; no current JSX/TSX or embedded-tag
+      commenting workflow
 
 ### UI / appearance
 - [x] `folke/tokyonight.nvim` — colorscheme `[ks]`; current default is
@@ -124,11 +129,13 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 - [x] `folke/snacks.nvim` — QoL suite; currently using bigfile, quickfile,
       terminal, and indent/chunk scope UI
 - [x] `folke/which-key.nvim` — keymap hint popup `[ks]`
-- [ ] `echasnovski/mini.icons` — icon provider `[dep]`
+- [x] `echasnovski/mini.icons` — `[drop]`; current UI stack already uses
+      `nvim-web-devicons` where icons are needed
 - [x] `MunifTanjim/nui.nvim` — UI component lib `[dep]`
 
 ### Navigation / search / git / diagnostics / sessions
-- [ ] `folke/flash.nvim` — fast jump / motions
+- [x] `folke/flash.nvim` — fast jump / motions; mapped conservatively under
+      `<leader>j` / `<leader>J`
 - [x] `lewis6991/gitsigns.nvim` — git gutter signs `[ks]`; signs use
       `A/M/D`, untracked files remain unattached, deeper Git workflow deferred
 - [x] `MagicDuck/grug-far.nvim` — project-wide search & replace UI
@@ -139,8 +146,9 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 - [x] `nvim-lua/plenary.nvim` — Lua utility lib `[dep]`
 
 ### Framework / manager
-- [ ] `LazyVim/LazyVim` — the distro being abandoned `[drop]`
-- [ ] `folke/lazy.nvim` — plugin manager `[drop]` (kickstart bundles it)
+- [x] `LazyVim/LazyVim` — distro abandoned; not needed after rebuilding on
+      kickstart.nvim
+- [x] `folke/lazy.nvim` — keep as the plugin manager used by kickstart.nvim
 
 ## 2.2 All 8 Mason tools (LSP / formatters — NOT plugins; install separately)
 
@@ -148,7 +156,8 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 - [x] clangd — C/C++
 - [x] lua-language-server — Lua
 - [x] pyright — Python
-- [ ] rust-analyzer — Rust
+- [x] rust-analyzer — Rust `[drop]`; no current Rust workflow, so no Mason
+      install or Rust LSP wiring needed
 - [x] typescript-language-server — TS/JS
 
 ### Formatters / CLI
@@ -157,9 +166,11 @@ Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
 - [x] tree-sitter-cli — treesitter CLI
 
 ## 2.3 Follow-up
-- [ ] Port custom keymaps/options/autocmds from old `lua/config/*`
+- [x] Port custom keymaps/options/autocmds from old Vim/LazyVim config;
+      remaining Neovim work is custom task selection, not migration catch-up
 - [x] Decide statusline: mini.statusline (kickstart) vs lualine
 - [x] Add the new nvim config as its own stow package under dotfiles
 - [x] Polish installed plugin behavior before adding more plugins
-- [ ] Low priority: decide whether `flash.nvim`, `nvim-lint`, `lazydev.nvim`,
-      Rust LSP, `ruff`, and `shellcheck` should be wired into Neovim diagnostics
+- [x] Document daily Neovim practice priorities and Practical Vim reading
+      tradeoffs in `nvim/PRACTICE.md`
+- [x] Wire `ruff` into Neovim diagnostics through `nvim-lint`
