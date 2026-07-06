@@ -30,6 +30,7 @@ APT_BASE_PACKAGES=(
   fzf
   git
   gnupg
+  neovim
   ripgrep
   stow
   tmux
@@ -43,6 +44,7 @@ APT_PREFERRED_PACKAGES=(
 )
 
 STOW_PACKAGES=(
+  nvim
   starship
   tmux
   zsh
@@ -231,6 +233,7 @@ verify_tools() {
     fzf
     git
     gpg
+    nvim
     rg
     stow
     tmux
