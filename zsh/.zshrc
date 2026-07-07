@@ -65,6 +65,7 @@ if [[ -t 0 && -t 1 ]]; then
 fi
 
 # Inline history suggestions
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=244"
 [[ -r /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 # Smarter directory jumping
