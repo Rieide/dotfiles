@@ -212,11 +212,11 @@ vim.keymap.set('n', '<leader>]', '<cmd>normal! <C-]><CR>', { desc = 'Tags: jump 
 -- or just use <C-\><C-n> to exit terminal mode
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
--- TIP: Disable arrow keys in normal mode
--- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
--- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
--- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
--- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
+-- Arrow keys are coarse movement; hjkl stays available for precise movement.
+vim.keymap.set({ 'n', 'x', 'o' }, '<left>', 'k', { desc = 'Move up one line' })
+vim.keymap.set({ 'n', 'x', 'o' }, '<right>', 'j', { desc = 'Move down one line' })
+vim.keymap.set({ 'n', 'x', 'o' }, '<up>', '{', { desc = 'Jump to previous paragraph' })
+vim.keymap.set({ 'n', 'x', 'o' }, '<down>', '}', { desc = 'Jump to next paragraph' })
 
 -- Keybinds to make split navigation easier.
 --  Use CTRL+<hjkl> to switch between windows
@@ -361,9 +361,29 @@ require('lazy').setup({
     ---@type wk.Opts
     ---@diagnostic disable-next-line: missing-fields
     opts = {
+      preset = 'modern',
       -- Delay between pressing a key and opening which-key (milliseconds)
       delay = 0,
       icons = { mappings = vim.g.have_nerd_font },
+      show_help = false,
+      win = {
+        no_overlap = false,
+        width = 0.92,
+        height = { min = 4, max = 0.48 },
+        col = 0.5,
+        row = -1,
+        border = 'rounded',
+        padding = { 1, 2 },
+        title = true,
+        title_pos = 'center',
+        wo = {
+          winblend = 30,
+        },
+      },
+      layout = {
+        width = { min = 24 },
+        spacing = 3,
+      },
 
       -- Document existing key chains
       spec = {
