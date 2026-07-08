@@ -151,6 +151,32 @@ step fails on a machine, the expected workflow is to inspect the log, fix the
 machine or the script intentionally, and rerun the bootstrap. Successful earlier
 and later steps should remain useful.
 
+## Ubuntu 26.04 Package Expectations
+
+The bootstrap script expects Ubuntu 26.04 apt sources to provide the base CLI
+set directly:
+
+```text
+ca-certificates curl direnv fd-find fzf git gnupg neovim ripgrep stow tmux wget zsh
+```
+
+It also tries preferred apt packages when they are available:
+
+```text
+bat git-delta zsh-autosuggestions
+```
+
+Some tools are intentionally installed outside the default Ubuntu archive:
+
+- `starship` uses the official install script.
+- `zoxide` uses the upstream install script.
+- `eza` uses the official eza Debian/Ubuntu repository.
+- `gh` uses the official GitHub CLI apt repository.
+
+Package names and command names are not always identical on Ubuntu. The script
+verifies `fd-find` as `fdfind`, `bat` as `batcat`, and `git-delta` as `delta`.
+When `--skip-remote` is used, remote-only tools are not installed or verified.
+
 ## Roadmap
 
 `TODO.md` is the working roadmap. It tracks completed base shell work, deferred

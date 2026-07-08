@@ -65,7 +65,7 @@ temporary experiments stay in `~/.zshrc.local`.
 - [ ] Deferred: `packages.txt` — the environment's "requirements" (apt / cargo / brew lists)
 - [ ] secrets: keep using the `*local*` gitignore pattern; if secrets must be
       committed, encrypt with `sops` + `age`
-- [ ] Document Ubuntu 26.04 package expectations for Part 1 tools
+- [x] Document Ubuntu 26.04 package expectations for Part 1 tools
 
 ## 1.4 Priority order
 1. [x] Base zsh integrations: starship, fzf, zoxide, eza/bat/fd aliases, direnv
