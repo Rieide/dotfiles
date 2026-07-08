@@ -48,7 +48,7 @@ temporary experiments stay in `~/.zshrc.local`.
 - [ ] Deferred: `.gitconfig` — next Git-focused task. Wire up `delta`, add aliases, and split identity:
       use `includeIf "gitdir:..."` so personal repos use Rieide/outlook and work
       repos use the work identity automatically (fixes the earlier author-leak issue).
-- [ ] `.editorconfig` — consistent indent/EOL across editors (repo root)
+- [x] `.editorconfig` — consistent indent/EOL across editors (repo root)
 - [x] `starship.toml` — custom two-line prompt with git, duration, status, shell, and selected language modules
 - [x] `zoxide` shell init
 - [ ] Deferred: `atuin` shell init & config
