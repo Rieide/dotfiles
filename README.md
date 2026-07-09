@@ -61,8 +61,10 @@ that are copied into a project only when needed, such as:
 
 ```text
 templates/
-└── clang-format/
-    └── personal.clang-format
+├── clang-format/
+│   └── personal.clang-format
+└── editorconfig/
+    └── project.editorconfig
 ```
 
 The Neovim package has its own short notes in `nvim/README.md`.

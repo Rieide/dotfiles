@@ -1,0 +1,36 @@
+# Copy this file to a project root as `.editorconfig`, then fill the empty
+# values according to that project's style guide.
+
+# true  = stop looking for parent .editorconfig files
+# false = allow parent .editorconfig files to keep applying
+root =
+
+[*]
+# Usually: utf-8
+charset =
+
+# Usually: lf on Linux projects, crlf only when a project explicitly requires it
+end_of_line =
+
+# Usually: true
+insert_final_newline =
+
+# Usually: true for code, false for Markdown if hard line breaks are used
+trim_trailing_whitespace =
+
+# Use "space" for spaces, "tab" for literal tab indentation
+indent_style =
+
+# Usually: 2 for project style, 4 for personal default
+indent_size =
+
+# Usually: 4; only matters when literal tabs are used or displayed
+tab_width =
+
+[*.md]
+# Usually: false when Markdown hard line breaks are used
+trim_trailing_whitespace =
+
+[Makefile]
+# Make recipes require literal tab indentation
+indent_style = tab
