@@ -26,7 +26,7 @@ return {
   opts = {
     options = {
       mode = 'buffers',
-      numbers = 'ordinal',
+      numbers = function(opts) return tostring(opts.ordinal) end,
       diagnostics = 'nvim_lsp',
       always_show_bufferline = false,
       show_buffer_close_icons = false,

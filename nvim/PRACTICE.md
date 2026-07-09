@@ -110,6 +110,9 @@ Flash 不是 Telescope 的替代品：
 <leader>sr  resume 上次搜索
 ```
 
+Bufferline 顶部显示的是可见位置编号，和 `<leader>1..9` / `<leader>b1..9`
+跳转目标一致。
+
 ### 7. C/C++ LSP 跳转习惯
 
 `<leader>ch` 只是 clangd 的 source/header switch，不适合作为通用跳转。

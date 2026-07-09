@@ -165,6 +165,7 @@ vim.o.inccommand = 'split'
 
 -- Show which line your cursor is on
 vim.o.cursorline = true
+vim.o.cursorcolumn = false
 vim.o.wrap = true
 
 -- Minimal number of screen lines to keep above and below the cursor.
@@ -181,6 +182,10 @@ vim.o.confirm = true
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+
+vim.keymap.set('n', '<leader>tc', function()
+  vim.o.cursorcolumn = not vim.o.cursorcolumn
+end, { desc = '[T]oggle [C]ursor column' })
 
 -- Diagnostic Config & Keymaps
 -- See `:help vim.diagnostic.Opts`
