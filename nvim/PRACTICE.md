@@ -110,8 +110,9 @@ Flash 不是 Telescope 的替代品：
 <leader>sr  resume 上次搜索
 ```
 
-Bufferline 顶部显示的是可见位置编号，和 `<leader>1..9` / `<leader>b1..9`
-跳转目标一致。
+Bufferline 顶部显示的是全局位置编号，按这个显示编号跳转，不按当前可见
+窗口内的位置跳转。单数字用 `<CR>` 确认，例如 `<leader>2<CR>`；两位数
+直接输入，例如 `<leader>21`。`<leader>b2<CR>` / `<leader>b21` 也可用。
 
 ### 7. C/C++ LSP 跳转习惯
 

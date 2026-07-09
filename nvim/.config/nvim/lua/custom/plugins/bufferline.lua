@@ -6,9 +6,22 @@ local keys = {
   { '<leader>bN', '<Cmd>BufferLineCyclePrev<CR>', desc = '[B]uffer Previous' },
 }
 
-for i = 1, 9 do
-  table.insert(keys, { '<leader>' .. i, '<Cmd>BufferLineGoToBuffer ' .. i .. '<CR>', desc = 'Go to visible buffer ' .. i })
-  table.insert(keys, { '<leader>b' .. i, '<Cmd>BufferLineGoToBuffer ' .. i .. '<CR>', desc = '[B]uffer go to visible ' .. i })
+local function go_to_buffer_ordinal_command(i) return ('<Cmd>lua require("bufferline").go_to(%d, true)<CR>'):format(i) end
+
+for i = 1, 99 do
+  local suffix = tostring(i)
+  if i < 10 then suffix = suffix .. '<CR>' end
+
+  table.insert(keys, {
+    '<leader>' .. suffix,
+    go_to_buffer_ordinal_command(i),
+    desc = 'Go to buffer ordinal ' .. i,
+  })
+  table.insert(keys, {
+    '<leader>b' .. suffix,
+    go_to_buffer_ordinal_command(i),
+    desc = '[B]uffer go to ordinal ' .. i,
+  })
 end
 
 ---@module 'lazy'
