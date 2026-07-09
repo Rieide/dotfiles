@@ -100,7 +100,7 @@ Flash 不是 Telescope 的替代品：
 
 ```text
 <leader>fb  buffers
-<leader>fr  recent files
+<leader>fo  old/recent files
 <leader>/   当前 buffer 内 fuzzy search
 <leader>fs  document symbols
 <leader>fS  workspace symbols
@@ -121,7 +121,7 @@ grr          references
 gri          implementation
 grt          type definition
 <leader>fd   find definitions
-<leader>fR   find references
+<leader>fr   find references
 <leader>xl   Trouble LSP list
 ```
 
@@ -156,7 +156,7 @@ Practical Vim 中关于 `:edit`、`:find`、`:args`、路径补全、buffer 管�
 
 ```text
 <leader>ff
-<leader>fr
+<leader>fo
 <leader>fb
 <leader><leader>
 <leader>1..9
@@ -201,7 +201,7 @@ grr
 gri
 grt
 <leader>fd
-<leader>fR
+<leader>fr
 ```
 
 但跳转历史仍然要学：
@@ -262,4 +262,3 @@ native completion
 file explorer / file navigation details
 复杂 arglist/buffer list 批处理
 ```
-

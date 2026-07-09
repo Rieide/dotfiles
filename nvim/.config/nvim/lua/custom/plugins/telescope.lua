@@ -96,7 +96,7 @@ return {
     vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = '[F]ind by [G]rep' })
     vim.keymap.set({ 'n', 'v' }, '<leader>fw', builtin.grep_string, { desc = '[F]ind current [W]ord' })
     vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = '[F]ind [B]uffers' })
-    vim.keymap.set('n', '<leader>fr', builtin.oldfiles, { desc = '[F]ind [R]ecent files' })
+    vim.keymap.set('n', '<leader>fo', builtin.oldfiles, { desc = '[F]ind [O]ld files' })
     vim.keymap.set('n', '<leader>fs', builtin.lsp_document_symbols, { desc = '[F]ind document [S]ymbols' })
     vim.keymap.set('n', '<leader>fS', builtin.lsp_dynamic_workspace_symbols, { desc = '[F]ind workspace [S]ymbols' })
     vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
@@ -120,7 +120,7 @@ return {
         vim.keymap.set('n', '<leader>fD', vim.lsp.buf.declaration, { buffer = buf, desc = '[F]ind [D]eclarations' })
         vim.keymap.set('n', '<leader>fi', builtin.lsp_implementations, { buffer = buf, desc = '[F]ind [I]mplementations' })
         vim.keymap.set('n', '<leader>ft', builtin.lsp_type_definitions, { buffer = buf, desc = '[F]ind [T]ype definitions' })
-        vim.keymap.set('n', '<leader>fR', builtin.lsp_references, { buffer = buf, desc = '[F]ind [R]eferences' })
+        vim.keymap.set('n', '<leader>fr', builtin.lsp_references, { buffer = buf, desc = '[F]ind [R]eferences' })
 
         vim.keymap.set('n', 'grr', builtin.lsp_references, { buffer = buf, desc = '[G]oto [R]eferences' })
         vim.keymap.set('n', 'gri', builtin.lsp_implementations, { buffer = buf, desc = '[G]oto [I]mplementation' })
