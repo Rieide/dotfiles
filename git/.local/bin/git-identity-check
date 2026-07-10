@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+die() {
+  printf 'Git identity check failed: %s\n' "$*" >&2
+  exit 1
+}
+
+canonical_dir() {
+  (cd -- "$1" 2>/dev/null && pwd -P)
+}
+
+config_value() {
+  local file="$1"
+  local key="$2"
+  git config --file "${file}" --get "${key}"
+}
+
+check_private_file() {
+  local file="$1"
+  local owner
+  local mode
+
+  [[ -f "${file}" && ! -L "${file}" ]] || die "private policy file is missing or is a symlink: ${file}"
+  owner="$(stat -c '%u' "${file}")"
+  mode="$(stat -c '%a' "${file}")"
+  [[ "${owner}" == "$(id -u)" ]] || die "private policy file is not owned by the current user: ${file}"
+  [[ "${mode}" == '600' ]] || die "private policy file must have mode 0600: ${file}"
+}
+
+check_ident() {
+  local kind="$1"
+  local ident="$2"
+  local expected_name="$3"
+  local expected_email="$4"
+  local actual_name
+  local actual_email
+  local rest
+
+  actual_name="${ident%% <*}"
+  rest="${ident#*<}"
+  actual_email="${rest%%>*}"
+
+  [[ "${actual_name}" == "${expected_name}" && "${actual_email}" == "${expected_email}" ]] ||
+    die "${kind} identity does not match the selected profile"
+}
+
+repo="${1:-.}"
+repo_root="$(git -C "${repo}" rev-parse --show-toplevel 2>/dev/null)" || die 'not inside a Git worktree'
+repo_root="$(canonical_dir "${repo_root}")" || die 'cannot resolve repository root'
+
+script_path="$(readlink -f "${BASH_SOURCE[0]}")"
+dotfiles_root="$(canonical_dir "$(dirname "${script_path}")/../../..")" || die 'cannot resolve dotfiles root'
+public_config="${dotfiles_root}/git/.gitconfig"
+[[ -r "${public_config}" ]] || die 'cannot read the public Git configuration'
+
+profile='public'
+local_profile="$(git -C "${repo_root}" config --local --get identity.profile 2>/dev/null || true)"
+[[ -z "${local_profile}" || "${local_profile}" == 'public' ]] || die 'unsupported repository-local identity.profile'
+
+local_config="${HOME}/.gitconfig.local"
+work_config="${HOME}/.gitconfig.work"
+work_root_raw=''
+if [[ -r "${local_config}" ]]; then
+  check_private_file "${local_config}"
+  work_root_raw="$(config_value "${local_config}" identity.workRoot 2>/dev/null || true)"
+fi
+
+if [[ -n "${work_root_raw}" ]]; then
+  work_root_raw="${work_root_raw/#\~/${HOME}}"
+  work_root="$(canonical_dir "${work_root_raw}")" || die 'cannot resolve configured work root'
+  case "${repo_root}/" in
+    "${work_root}/"*) profile='work' ;;
+  esac
+fi
+
+if [[ "${repo_root}" == "${dotfiles_root}" || "${local_profile}" == 'public' ]]; then profile='public'; fi
+
+case "${profile}" in
+  public)
+    expected_name="$(config_value "${public_config}" user.name)" || die 'public user.name is missing'
+    expected_email="$(config_value "${public_config}" user.email)" || die 'public user.email is missing'
+    ;;
+  work)
+    check_private_file "${work_config}"
+    expected_name="$(config_value "${work_config}" user.name)" || die 'work user.name is missing'
+    expected_email="$(config_value "${work_config}" user.email)" || die 'work user.email is missing'
+    ;;
+  *)
+    die 'internal profile selection error'
+    ;;
+esac
+
+author_ident="$(git -C "${repo_root}" var GIT_AUTHOR_IDENT)" || die 'cannot resolve author identity'
+committer_ident="$(git -C "${repo_root}" var GIT_COMMITTER_IDENT)" || die 'cannot resolve committer identity'
+
+check_ident author "${author_ident}" "${expected_name}" "${expected_email}"
+check_ident committer "${committer_ident}" "${expected_name}" "${expected_email}"
+
+printf 'Git identity check passed: profile=%s repo=%s\n' "${profile}" "${repo_root}"

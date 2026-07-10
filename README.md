@@ -80,6 +80,52 @@ The main rule is:
 For zsh, the shared file is stowed as `~/.zshrc`. It may source a local override
 such as `~/.zshrc.local`, which is intentionally not committed.
 
+For Git, the stowed `~/.gitconfig` contains a public fallback identity that is
+safe to use in public repositories. It includes `~/.gitconfig.local` afterward,
+so a machine can select a private identity conditionally without committing it.
+For example, a development machine can keep the identity itself in
+`~/.gitconfig.work` and route repositories under a dedicated work directory to
+it from `~/.gitconfig.local`:
+
+```gitconfig
+[includeIf "gitdir:~/work/company/"]
+	path = ~/.gitconfig.work
+```
+
+Because the condition matches every repository below that directory, any public
+repository kept there needs an explicit repository-local public identity as an
+exception. Private identity files and the exact work-directory rules remain
+machine-local.
+
+On first adoption, Stow will not overwrite an existing regular
+`~/.gitconfig`. Back it up, move private or machine-specific values into local
+files, and only then stow the `git` package. The bootstrap deliberately leaves
+that conflict visible instead of guessing how to migrate private identity.
+
+The Git package also stows a `prepare-commit-msg` hook and an identity checker.
+Before Git creates a commit, the checker resolves both author and committer via
+`git var`, selects the public or work profile from the repository path, and
+rejects local config, command-line, or environment overrides that do not match.
+The work root is recorded only in `~/.gitconfig.local` as `identity.workRoot`.
+Private policy files must be regular files owned by the current user with mode
+`0600`.
+
+This is a guardrail, not a security boundary against the account owner. A user
+or process with permission to change Git configuration can replace
+`core.hooksPath`, modify the checker, or otherwise bypass local hooks. Review
+configuration changes before use and enforce identity policy on the remote when
+it must be non-bypassable.
+
+Run the isolated regression suite after changing the identity policy or hook:
+
+```sh
+./scripts/test-git-identity-security.sh
+```
+
+It creates disposable public and work-profile repositories, confirms expected
+commits, attempts common identity overrides, verifies private-file permissions,
+and demonstrates the documented `core.hooksPath` local-bypass boundary.
+
 This split should stay boring and explicit. A new machine should be able to use
 the shared config immediately, while still leaving room for host-specific fixes
 without branching the repository.

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+checker="${HOME}/.local/bin/git-identity-check"
+[[ -x "${checker}" ]] || {
+  printf 'Git identity check failed: checker is missing or not executable: %s\n' "${checker}" >&2
+  exit 1
+}
+
+exec "${checker}" .

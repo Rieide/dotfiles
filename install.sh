@@ -45,6 +45,7 @@ APT_PREFERRED_PACKAGES=(
 )
 
 STOW_PACKAGES=(
+  git
   nvim
   starship
   tmux

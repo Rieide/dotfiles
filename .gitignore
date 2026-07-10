@@ -5,6 +5,12 @@ NOTES.md
 *local*
 local.zsh
 
+# Shared executable in the Git Stow package; do not let the broad *local*
+# machine-override rule hide ~/.local/bin/git-identity-check.
+!git/.local/
+!git/.local/bin/
+!git/.local/bin/git-identity-check
+
 # 操作系统杂项
 .DS_Store
 Thumbs.db

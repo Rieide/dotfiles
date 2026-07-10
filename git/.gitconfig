@@ -1,12 +1,17 @@
+# Public fallback identity. Work or machine-specific identities belong in
+# ~/.gitconfig.local and files included from it, never in this repository.
 [user]
 	name = Rieide
 	email = riei.de@outlook.com
 
+# Keep this include after [user] so matching private identity files can
+# override the public fallback without exposing their values here.
 [include]
 	path = ~/.gitconfig.local
 
 [core]
 	editor = nvim
+	hooksPath = ~/.config/git/hooks
 	pager = delta
 
 [interactive]

@@ -69,6 +69,18 @@ proxies, tokens, and experiments belong in local files such as
       `zdiff3` conflicts, fast-forward-only pulls, current-branch pushes, and
       practical aliases.
 - [x] Include `~/.gitconfig.local` for local overrides.
+- [x] Keep the public identity as the shared fallback while selecting the U20
+      development machine's private company identity only for repositories
+      under `~/install_form/ws/`.
+- [x] Keep a repository-local public identity in dotfiles because it lives
+      inside the work-directory match.
+- [x] Deploy the shared Git configuration through Stow without committing the
+      private identity files.
+- [x] Add a global commit-time identity guard that checks author and committer
+      against the path-selected profile and rejects unexpected overrides.
+- [x] Add an isolated Git identity security regression suite covering multiple
+      paths, common override attempts, private-file permissions, and the
+      documented client-side hook bypass boundary.
 
 ### Neovim
 
@@ -104,11 +116,11 @@ Work through these before adding another large group of editor plugins.
 
 ### Git deployment and identity
 
-- [ ] Move `user.name` and `user.email` out of the shared `git/.gitconfig`.
-      Put identity in `~/.gitconfig.local`, or use `includeIf "gitdir:..."`
-      files when personal and work repositories require different identities.
-- [ ] Add `git` to `STOW_PACKAGES` after handling an existing
-      `~/.gitconfig` safely, then verify the resulting include paths.
+- [x] Keep the public `user.name` and `user.email` in the shared
+      `git/.gitconfig`; move the real/company identity into the untracked
+      `~/.gitconfig.work` selected by `~/.gitconfig.local`.
+- [x] Add `git` to `STOW_PACKAGES`, back up the previous global config, and
+      verify public, work-directory, and dotfiles-exception identities.
 
 ### Missing commands used by existing configuration
 
