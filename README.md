@@ -18,6 +18,9 @@ environment:
 - `starship` as the shell prompt
 - `nvim` as an active Neovim configuration package, based on kickstart.nvim and
   grown through explicit plugin choices instead of carrying LazyVim wholesale
+- `git` as a shared public configuration with Delta, identity enforcement, and
+  staged secret scanning
+- `lazygit` as the terminal Git UI used directly, through tmux, and from Neovim
 - shell-adjacent CLI tools such as `fzf`, `zoxide`, `eza`, `bat`, `ripgrep`,
   `direnv`, `delta`, and `gitleaks`
 - reusable templates, currently including a personal `clang-format` style
@@ -32,6 +35,16 @@ normal Stow model.
 For example:
 
 ```text
+git/
+├── .gitconfig
+├── .config/git/hooks/
+│   ├── pre-commit
+│   └── prepare-commit-msg
+└── .local/bin/git-identity-check
+
+lazygit/
+└── .config/lazygit/config.yml
+
 zsh/
 └── .zshrc
 
@@ -68,6 +81,37 @@ templates/
 ```
 
 The Neovim package has its own short notes in `nvim/README.md`.
+
+## Bootstrap
+
+The supported target is Ubuntu 26.04 under WSL. Review the planned operations
+before the first real run:
+
+```sh
+./install.sh --dry-run
+./install.sh
+```
+
+The real run updates apt metadata, installs the configured package groups, runs
+the selected upstream installers, verifies expected commands, and stows every
+available package into `$HOME`. It may request sudo authentication. Logs are
+written to:
+
+```text
+~/.local/state/dotfiles/install-YYYYMMDD-HHMMSS.log
+```
+
+Useful scoped modes are:
+
+```sh
+./install.sh --install-only
+./install.sh --stow-only
+./install.sh --skip-remote
+```
+
+Stow deliberately refuses to replace an existing regular file. Back up and
+review any conflict instead of using `--adopt` without understanding which copy
+should become authoritative.
 
 ## Shared vs Local Configuration
 
@@ -131,6 +175,44 @@ Run the isolated regression suite after changing the identity policy or hook:
 It creates disposable public and work-profile repositories, confirms expected
 commits, attempts common identity overrides, verifies private-file permissions,
 and demonstrates the documented `core.hooksPath` local-bypass boundary.
+
+## Git Workflow
+
+Delta is the default Git pager, with the Nord syntax theme, line numbers,
+navigation, and side-by-side output. It is used automatically by commands such
+as:
+
+```sh
+git diff
+git staged
+git show HEAD
+git log -p
+git blame path/to/file
+```
+
+Lazygit uses Neovim as its editor and Delta as its diff pager. The configured
+entry points are:
+
+```text
+terminal: lazygit
+tmux:     prefix + g
+Neovim:  <Space>gg
+```
+
+The global Gitleaks hook checks staged content automatically. Ubuntu 26.04
+currently packages the older Gitleaks command interface, so manual scans use:
+
+```sh
+# Current files only
+gitleaks detect --no-git --redact --source .
+
+# Complete Git history
+gitleaks detect --redact --source .
+```
+
+The pre-commit scan prevents accidental leaks but remains a local guardrail:
+`git commit --no-verify` bypasses it. The separate identity hook still runs for
+`--no-verify` commits.
 
 This split should stay boring and explicit. A new machine should be able to use
 the shared config immediately, while still leaving room for host-specific fixes
@@ -217,7 +299,7 @@ ca-certificates curl direnv fd-find fzf git gnupg neovim ripgrep stow tmux wget 
 It also tries preferred apt packages when they are available:
 
 ```text
-bat git-delta zsh-autosuggestions
+bat git-delta gitleaks lazygit zsh-autosuggestions
 ```
 
 Some tools are intentionally installed outside the default Ubuntu archive:
@@ -232,9 +314,8 @@ When `--skip-remote` is used, remote-only tools are not installed or verified.
 
 ## Roadmap
 
-`TODO.md` is the working roadmap. It tracks completed base shell work, deferred
-tools, installer feedback, Git configuration plans, and the future Neovim
-migration.
+`TODO.md` is the working roadmap. It tracks the current baseline, remaining
+reproducibility gaps, and optional workflow enhancements.
 
 The roadmap should stay close to the current state of the repository. When a
 tool is added, deferred, or moved out of scope, the roadmap should say so.
