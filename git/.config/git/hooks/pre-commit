@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+command -v gitleaks >/dev/null 2>&1 || {
+  printf 'Gitleaks pre-commit check failed: gitleaks is missing from PATH\n' >&2
+  exit 1
+}
+
+exec gitleaks protect --staged --redact --no-banner --log-level warn

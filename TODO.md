@@ -2,18 +2,9 @@
 
 Maintained roadmap for this GNU Stow-based dotfiles repository.
 
-Environment roles:
-
-- Baseline and deployment target: the personal computer running WSL with
-  Ubuntu 26.04, using zsh as the interactive shell.
-- Current repository development host: Ubuntu 20.04.6 LTS. It is useful for
-  editing and limited validation, but it is not the bootstrap compatibility
-  target.
-
-The installer should continue targeting the Ubuntu 26.04 WSL baseline. A check
-that passes on the Ubuntu 20.04 development host does not imply that the
-installer supports Ubuntu 20.04; older releases remain out of scope unless
-support is added deliberately.
+The active development and deployment baseline is the personal computer running
+WSL with Ubuntu 26.04 and zsh as the interactive shell. Older Ubuntu releases
+remain out of scope unless support is added deliberately.
 
 The checked items below describe the current repository baseline. Unchecked items
 are actual follow-up work. `install.sh`, the stowed configuration, and Neovim's
@@ -31,7 +22,8 @@ proxies, tokens, and experiments belong in local files such as
 
 ### Bootstrap and repository structure
 
-- [x] Manage `nvim`, `starship`, `tmux`, and `zsh` as Stow packages.
+- [x] Manage `git`, `lazygit`, `nvim`, `starship`, `tmux`, and `zsh` as Stow
+      packages.
 - [x] Provide a best-effort Ubuntu 26.04 bootstrap with install-only,
       stow-only, skip-remote, and dry-run modes.
 - [x] Log installation failures, continue independent work, verify expected
@@ -69,11 +61,8 @@ proxies, tokens, and experiments belong in local files such as
       `zdiff3` conflicts, fast-forward-only pulls, current-branch pushes, and
       practical aliases.
 - [x] Include `~/.gitconfig.local` for local overrides.
-- [x] Keep the public identity as the shared fallback while selecting the U20
-      development machine's private company identity only for repositories
-      under `~/install_form/ws/`.
-- [x] Keep a repository-local public identity in dotfiles because it lives
-      inside the work-directory match.
+- [x] Keep the public identity as the shared fallback; leave private identity
+      overrides absent on the personal U26 machine unless a real need appears.
 - [x] Deploy the shared Git configuration through Stow without committing the
       private identity files.
 - [x] Add a global commit-time identity guard that checks author and committer
@@ -81,6 +70,10 @@ proxies, tokens, and experiments belong in local files such as
 - [x] Add an isolated Git identity security regression suite covering multiple
       paths, common override attempts, private-file permissions, and the
       documented client-side hook bypass boundary.
+- [x] Install and configure Lazygit with Neovim editing and Delta paging; expose
+      it through the terminal, tmux popup, and Neovim Snacks integration.
+- [x] Scan staged content with a global Gitleaks hook while keeping full-history
+      scans manual and documenting the standard `--no-verify` bypass.
 
 ### Neovim
 
@@ -114,21 +107,11 @@ proxies, tokens, and experiments belong in local files such as
 
 Work through these before adding another large group of editor plugins.
 
-### Git deployment and identity
-
-- [x] Keep the public `user.name` and `user.email` in the shared
-      `git/.gitconfig`; move the real/company identity into the untracked
-      `~/.gitconfig.work` selected by `~/.gitconfig.local`.
-- [x] Add `git` to `STOW_PACKAGES`, back up the previous global config, and
-      verify public, work-directory, and dotfiles-exception identities.
-
 ### Missing commands used by existing configuration
 
 - [ ] Add `build-essential` (or at minimum `make`) and `unzip` to the bootstrap.
       Neovim health checks require them, telescope-fzf-native builds with
       `make`, and LuaSnip can build its regex module with `make`.
-- [ ] Install and verify `lazygit`; tmux and Snacks already expose Lazygit
-      keybindings.
 - [ ] Install and verify `xclip` for the current tmux clipboard bindings.
 - [ ] Add `wl-clipboard` support and select `wl-copy` on Wayland while retaining
       `xclip` as the X11 fallback.
@@ -144,9 +127,8 @@ Work through these before adding another large group of editor plugins.
       run outside Neovim.
 - [ ] Test `install.sh --dry-run` and Stow conflict handling in a temporary
       HOME so bootstrap changes cannot overwrite a real home directory.
-- [ ] Validate bootstrap/package changes on the Ubuntu 26.04 WSL baseline.
-      Treat checks run on the Ubuntu 20.04 development host as limited
-      development feedback, not as an Ubuntu 20.04 compatibility promise.
+- [x] Validate bootstrap/package changes on the Ubuntu 26.04 WSL baseline and
+      review a successful real-bootstrap log.
 
 ---
 
@@ -168,6 +150,21 @@ workflow need.
       part of the regular workflow.
 - [ ] Evaluate Yazi as a terminal file manager, preferably through a tmux popup
       rather than as another Neovim file-tree plugin.
+
+### Git
+
+- [ ] Evaluate `sindrets/diffview.nvim` only if reviewing multi-file diffs,
+      renamed-file history, or three-way conflicts inside Neovim becomes more
+      useful than the existing Gitsigns, Delta, and Lazygit workflow.
+- [ ] Adopt Git LFS only for a repository that actually tracks large binary
+      assets; review its filters, remote storage, and pre-push hook interaction
+      before enabling it.
+- [ ] Install `git-filter-repo` only for a deliberate history rewrite or
+      recovery task, such as removing a leaked secret or oversized object.
+- [ ] Evaluate `git-absorb` only after the standard fixup and autosquash workflow
+      is familiar and multi-commit feature branches make automation worthwhile.
+- [ ] Evaluate Difftastic as an optional syntax-aware difftool for large
+      refactors; keep Delta as the default line-oriented pager.
 
 ### Neovim
 

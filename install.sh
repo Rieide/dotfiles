@@ -41,11 +41,14 @@ APT_BASE_PACKAGES=(
 APT_PREFERRED_PACKAGES=(
   bat
   git-delta
+  gitleaks
+  lazygit
   zsh-autosuggestions
 )
 
 STOW_PACKAGES=(
   git
+  lazygit
   nvim
   starship
   tmux
@@ -214,17 +217,6 @@ install_eza_repo() {
   try_run sudo apt install -y eza
 }
 
-install_gh_repo() {
-  log "Installing gh from the official GitHub CLI apt repository"
-  try_run sudo mkdir -p -m 755 /etc/apt/keyrings
-  try_run_shell 'wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null'
-  try_run sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-  try_run sudo mkdir -p -m 755 /etc/apt/sources.list.d
-  try_run_shell 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null'
-  try_run sudo apt update
-  try_run sudo apt install -y gh
-}
-
 verify_tools() {
   log "Verifying expected commands"
 
@@ -246,11 +238,12 @@ verify_tools() {
   local preferred_commands=(
     batcat
     delta
+    gitleaks
+    lazygit
   )
 
   local remote_commands=(
     eza
-    gh
     starship
     zoxide
   )
@@ -384,7 +377,6 @@ main() {
       install_starship
       install_zoxide
       install_eza_repo
-      install_gh_repo
     fi
 
     if [[ "${DRY_RUN}" -eq 1 ]]; then

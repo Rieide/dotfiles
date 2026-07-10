@@ -19,7 +19,7 @@ environment:
 - `nvim` as an active Neovim configuration package, based on kickstart.nvim and
   grown through explicit plugin choices instead of carrying LazyVim wholesale
 - shell-adjacent CLI tools such as `fzf`, `zoxide`, `eza`, `bat`, `ripgrep`,
-  `direnv`, `gh`, and `delta`
+  `direnv`, `delta`, and `gitleaks`
 - reusable templates, currently including a personal `clang-format` style
 - a best-effort bootstrap script for installing the current preferred toolset and
   stowing selected packages
@@ -109,6 +109,12 @@ rejects local config, command-line, or environment overrides that do not match.
 The work root is recorded only in `~/.gitconfig.local` as `identity.workRoot`.
 Private policy files must be regular files owned by the current user with mode
 `0600`.
+
+A separate global `pre-commit` hook runs
+`gitleaks protect --staged --redact` before every commit. It scans only staged
+content, fails closed if Gitleaks is unavailable, and leaves full-history scans
+as an explicit manual or CI task. `git commit --no-verify` bypasses this standard
+pre-commit hook, but it does not bypass the `prepare-commit-msg` identity check.
 
 This is a guardrail, not a security boundary against the account owner. A user
 or process with permission to change Git configuration can replace
@@ -219,7 +225,6 @@ Some tools are intentionally installed outside the default Ubuntu archive:
 - `starship` uses the official install script.
 - `zoxide` uses the upstream install script.
 - `eza` uses the official eza Debian/Ubuntu repository.
-- `gh` uses the official GitHub CLI apt repository.
 
 Package names and command names are not always identical on Ubuntu. The script
 verifies `fd-find` as `fdfind`, `bat` as `batcat`, and `git-delta` as `delta`.
