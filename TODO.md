@@ -1,178 +1,177 @@
 # TODO — dotfiles
 
-Personal roadmap for this stow-based dotfiles repo.
-Target environment: Ubuntu 26.04 / Linux / X11, zsh-oriented. Older Ubuntu releases are out of scope unless support is added deliberately.
-Already installed on this WSL machine: stow, git, gh, fzf, fd/fdfind,
-ripgrep (rg), bat/batcat, eza, delta, direnv, zoxide, starship, tmux, zsh,
-tldr, nvim.
+Maintained roadmap for this GNU Stow-based dotfiles repository.
 
-Each config below should become its own stow package (same flow as tmux:
-create package → parse/validate → stow → verify).
+Environment roles:
 
----
+- Baseline and deployment target: the personal computer running WSL with
+  Ubuntu 26.04, using zsh as the interactive shell.
+- Current repository development host: Ubuntu 20.04.6 LTS. It is useful for
+  editing and limited validation, but it is not the bootstrap compatibility
+  target.
 
-# Part 1 — Dotfiles tooling & configs
+The installer should continue targeting the Ubuntu 26.04 WSL baseline. A check
+that passes on the Ubuntu 20.04 development host does not imply that the
+installer supports Ubuntu 20.04; older releases remain out of scope unless
+support is added deliberately.
 
-## 1.0 Base zsh experience
+The checked items below describe the current repository baseline. Unchecked items
+are actual follow-up work. `install.sh`, the stowed configuration, and Neovim's
+`lazy-lock.json` are the source of truth for tools and plugins managed by this
+repository; they do not claim to describe everything currently installed on a
+particular machine. This file should not duplicate historical inventories.
 
-Goal: build a fast, useful, and understandable zsh setup. Shared behavior goes
-into the stowed `zsh/.zshrc`; machine-specific paths, proxies, secrets, and
-temporary experiments stay in `~/.zshrc.local`.
-
-- [x] Stow-managed `~/.zshrc`
-- [x] Local override via `~/.zshrc.local`
-- [x] Basic history, completion, shell options, colors, and aliases
-- [x] No zsh plugin manager for now; keep config framework-free and explicit
-- [x] Add fzf key bindings and completion
-- [x] Add smarter directory jumping with `zoxide`
-- [x] Add prompt with `starship`
-- [x] Add inline history suggestions with `zsh-autosuggestions`
-- [x] Add modern aliases/functions around `eza`, `bat`, `fd`, and `rg`
-- [x] Add `direnv` hook for per-project environments
-- [x] Keep startup fast and understandable; avoid large framework-style config
-- [ ] Deferred: add `atuin` after the basic zsh workflow feels stable
-- [ ] Deferred: evaluate `lazygit` later as part of the Git workflow, not base zsh
-
-## 1.1 CLI tools to install (not present yet)
-- [x] `starship` — cross-shell prompt (one config for both bash & zsh)
-- [x] `zoxide` — smart `cd` (`z proj`, `zi` fuzzy jump); pairs with fzf
-- [ ] Deferred: `atuin` — shell history in SQLite + fuzzy search + cross-machine sync
-- [x] `eza` — modern `ls` (icons, git status, tree)
-- [x] `bat` — `cat` with syntax highlight; also a pager / man colorizer
-- [x] `delta` — git diff pager (side-by-side, syntax highlight)
-- [x] `zsh-autosuggestions` — inline history suggestions while typing
-- [x] `direnv` — auto-load per-directory `.envrc` environments
-- [x] `gh` — GitHub CLI (PRs, issues, clone)
-
-## 1.2 Config files to add (as stow packages)
-- [ ] Deferred: `.gitconfig` — next Git-focused task. Wire up `delta`, add aliases, and split identity:
-      use `includeIf "gitdir:..."` so personal repos use Rieide/outlook and work
-      repos use the work identity automatically (fixes the earlier author-leak issue).
-- [x] `.editorconfig` — consistent indent/EOL across editors (repo root)
-- [x] `starship.toml` — custom two-line prompt with git, duration, status, shell, and selected language modules
-- [x] `zoxide` shell init
-- [ ] Deferred: `atuin` shell init & config
-- [ ] `ripgrep` config (`~/.config/ripgrep/config`) + `bat` theme
-- [x] shell configs: bring `.zshrc` under stow (mind `*local*` overrides)
-- [x] Decide whether `.bashrc` still needs to be managed after zsh migration:
-      keep it unmanaged and leave the machine's existing file as-is
-
-## 1.3 Structural / reproducibility
-- [x] Add best-effort `install.sh` bootstrap:
-      installs the current preferred Ubuntu 26.04 toolset, logs failures loudly,
-      keeps going after install failures, stows packages only when their commands
-      are available afterward, and keeps secrets / machine-local files manual.
-- [ ] Deferred: `packages.txt` — the environment's "requirements" (apt / cargo / brew lists)
-- [ ] secrets: keep using the `*local*` gitignore pattern; if secrets must be
-      committed, encrypt with `sops` + `age`
-- [x] Document Ubuntu 26.04 package expectations for Part 1 tools
-
-## 1.4 Priority order
-1. [x] Base zsh integrations: starship, fzf, zoxide, eza/bat/fd aliases, direnv
-2. [ ] `.gitconfig` + `includeIf` identity split (+ delta) — solves a real pain point
-3. [ ] Decide whether to add `atuin`
-4. [x] Refine `install.sh` after Ubuntu 26.04 migration feedback
+Shared behavior belongs in this repository. Machine identity, private paths,
+proxies, tokens, and experiments belong in local files such as
+`~/.zshrc.local` and `~/.gitconfig.local`.
 
 ---
 
-# Part 2 — Neovim migration: LazyVim → kickstart.nvim
+## 1. Current baseline
 
-Goal: stop treating the working-machine Neovim + LazyVim setup as a black box.
-Use the current LazyVim config only as a source snapshot, extract its full plugin
-and Mason-tool inventory, then rebuild a personal Neovim environment gradually
-from kickstart.nvim through real use.
+### Bootstrap and repository structure
 
-This is the FULL inventory of the old working-machine LazyVim setup
-(base LazyVim, no extras) — nothing pre-filtered. Tick what you want to carry over.
-Source snapshot: 32 lazy.nvim plugins + 8 Mason tools, extracted 2026-07-01.
+- [x] Manage `nvim`, `starship`, `tmux`, and `zsh` as Stow packages.
+- [x] Provide a best-effort Ubuntu 26.04 bootstrap with install-only,
+      stow-only, skip-remote, and dry-run modes.
+- [x] Log installation failures, continue independent work, verify expected
+      commands, and summarize failures at the end.
+- [x] Keep secrets and machine-local overrides out of Git via `*local*`
+      ignore rules.
+- [x] Keep package requirements in the auditable arrays in `install.sh` rather
+      than maintaining a duplicate `packages.txt`.
+- [x] Provide reusable `.editorconfig` and `.clang-format` project templates.
 
-Tags: `[ks]` already in kickstart by default · `[dep]` auto-pulled dependency ·
-`[drop]` distro/manager glue · untagged = genuine add-on candidate.
-Plugin specs use `owner/repo` (drop straight into a lazy plugin spec).
+### Shell and CLI
 
-## 2.1 All 32 plugins
+- [x] Configure zsh history, completion, options, colors, aliases, and a local
+      override loaded from `~/.zshrc.local`.
+- [x] Integrate fzf, zoxide, direnv, Starship, and zsh-autosuggestions
+      defensively so missing optional commands do not break shell startup.
+- [x] Add Ubuntu command-name compatibility for `batcat` and `fdfind`, plus
+      eza-based `ls`, `ll`, `la`, and `tree` aliases when eza is available.
+- [x] Keep zsh framework-free and avoid a shell plugin manager.
+- [x] Configure Starship with Git state, language context, command duration,
+      exit status, sudo state, and background jobs.
 
-### Completion / snippets
-- [x] `Saghen/blink.cmp` — completion engine `[ks]`; configured auto menu,
-      manual docs popup, and default completion keymaps
-- [x] `rafamadriz/friendly-snippets` — snippet collection `[dep]`;
-      loaded through LuaSnip for blink.cmp snippet completions
+### tmux
 
-### LSP / formatting / lint
-- [x] `neovim/nvim-lspconfig` — LSP server configs `[ks]`; clangd tuned with
-      compile database warnings
-- [x] `mason-org/mason.nvim` — LSP/tool installer `[ks]`; rounded UI, no auto
-      update, 48h check debounce
-- [x] `mason-org/mason-lspconfig.nvim` — bridge mason ↔ lspconfig `[ks]`;
-      automatic enable disabled
-- [x] `stevearc/conform.nvim` — formatter runner `[ks]`; format-on-save
-      disabled, manual `<leader>cf` retained
-- [x] `folke/lazydev.nvim` — Lua/nvim-config LSP dev `[ks]`
-- [x] `mfussenegger/nvim-lint` — standalone linter runner; shell scripts
-      linted with Mason-managed `shellcheck`
+- [x] Configure zsh, true color, mouse support, vi copy mode, `C-a` prefix,
+      path-aware splits, Vim-style pane navigation, resizing, and popups.
+- [x] Configure TPM with `tmux-sensible`, `tmux-resurrect`, and
+      `tmux-continuum`, including automatic TPM bootstrap.
+- [x] Add fzf session switching, a Lazygit popup, and OS clipboard copy
+      bindings.
 
-### Treesitter / editing
-- [x] `nvim-treesitter/nvim-treesitter` — syntax parsing/highlight `[ks]`
-- [x] `nvim-treesitter/nvim-treesitter-textobjects` — TS-based text objects
-- [x] `echasnovski/mini.ai` — better a/i text objects `[ks]`
-- [x] `echasnovski/mini.pairs` — `[drop]`; current config already uses
-      `windwp/nvim-autopairs`
-- [x] `windwp/nvim-ts-autotag` — `[drop]`; no current HTML/JSX/TSX workflow
-- [x] `folke/ts-comments.nvim` — `[drop]`; no current JSX/TSX or embedded-tag
-      commenting workflow
+### Git
 
-### UI / appearance
-- [x] `folke/tokyonight.nvim` — colorscheme `[ks]`; current default is
-      `tokyonight-night`
-- [x] `catppuccin/nvim` — alternate colorscheme
-- [x] `nvim-lualine/lualine.nvim` — statusline (vs kickstart's mini.statusline)
-- [x] `akinsho/bufferline.nvim` — buffer tabs across the top
-- [x] `folke/noice.nvim` — cmdline / message UI (opinionated, heavier)
-- [x] `folke/snacks.nvim` — QoL suite; currently using bigfile, quickfile,
-      terminal, and indent/chunk scope UI
-- [x] `folke/which-key.nvim` — keymap hint popup `[ks]`
-- [x] `echasnovski/mini.icons` — `[drop]`; current UI stack already uses
-      `nvim-web-devicons` where icons are needed
-- [x] `MunifTanjim/nui.nvim` — UI component lib `[dep]`
+- [x] Track a shared Git configuration with Neovim as editor, Delta as pager,
+      `zdiff3` conflicts, fast-forward-only pulls, current-branch pushes, and
+      practical aliases.
+- [x] Include `~/.gitconfig.local` for local overrides.
 
-### Navigation / search / git / diagnostics / sessions
-- [x] `folke/flash.nvim` — fast jump / motions; mapped conservatively under
-      `<leader>j` / `<leader>J`
-- [x] `lewis6991/gitsigns.nvim` — git gutter signs `[ks]`; signs use
-      `A/M/D`, untracked files remain unattached, deeper Git workflow deferred
-- [x] `MagicDuck/grug-far.nvim` — project-wide search & replace UI
-- [x] `folke/trouble.nvim` — diagnostics / quickfix list UI
-- [x] `folke/todo-comments.nvim` — highlight TODO/FIX/etc. `[ks]`; signs
-      disabled, text highlight only
-- [x] `folke/persistence.nvim` — session save & restore
-- [x] `nvim-lua/plenary.nvim` — Lua utility lib `[dep]`
+### Neovim
 
-### Framework / manager
-- [x] `LazyVim/LazyVim` — distro abandoned; not needed after rebuilding on
-      kickstart.nvim
-- [x] `folke/lazy.nvim` — keep as the plugin manager used by kickstart.nvim
+- [x] Replace the old LazyVim setup with a readable Kickstart-based
+      configuration managed by lazy.nvim.
+- [x] Use Telescope for picking/search, Neo-tree for files, bufferline for the
+      buffer UI, lualine for statusline/winbar, Trouble for diagnostics and
+      symbols, and Noice for message history while retaining the classic
+      bottom command line.
+- [x] Keep Snacks limited to low-conflict modules: bigfile, quickfile,
+      terminal, and indent/chunk scope UI.
+- [x] Configure LSP for C/C++ (`clangd`), Python (`pyright`), TypeScript, and
+      Lua, including clangd compile-database warnings and source/header switch.
+- [x] Configure blink.cmp, LuaSnip, friendly-snippets, lazydev, Treesitter,
+      Treesitter text objects, autopairs, and mini.ai/mini.surround.
+- [x] Keep formatting intentional: Conform uses Stylua and clang-format, with
+      format-on-save disabled and `<leader>cf` for manual formatting.
+- [x] Lint shell files with ShellCheck and Python with Ruff through nvim-lint.
+- [x] Let Mason manage the current 10-tool set:
+      `clang-format`, `clangd`, `lua-language-server`, `pyright`, `ruff`,
+      `shellcheck`, `shfmt`, `stylua`, `tree-sitter-cli`, and
+      `typescript-language-server`.
+- [x] Use Kanagawa Wave as the active theme; keep Tokyo Night, Catppuccin,
+      Rose Pine, and Sonokai as alternatives.
+- [x] Document daily workflows and learning priorities in
+      `nvim/PRACTICE.md`.
 
-## 2.2 All 8 Mason tools (LSP / formatters — NOT plugins; install separately)
+---
 
-### LSP servers
-- [x] clangd — C/C++
-- [x] lua-language-server — Lua
-- [x] pyright — Python
-- [x] rust-analyzer — Rust `[drop]`; no current Rust workflow, so no Mason
-      install or Rust LSP wiring needed
-- [x] typescript-language-server — TS/JS
+## 2. Next work — reproducibility gaps
 
-### Formatters / CLI
-- [x] stylua — Lua formatter
-- [x] shfmt — shell formatter
-- [x] tree-sitter-cli — treesitter CLI
+Work through these before adding another large group of editor plugins.
 
-## 2.3 Follow-up
-- [x] Port custom keymaps/options/autocmds from old Vim/LazyVim config;
-      remaining Neovim work is custom task selection, not migration catch-up
-- [x] Decide statusline: mini.statusline (kickstart) vs lualine
-- [x] Add the new nvim config as its own stow package under dotfiles
-- [x] Polish installed plugin behavior before adding more plugins
-- [x] Document daily Neovim practice priorities and Practical Vim reading
-      tradeoffs in `nvim/PRACTICE.md`
-- [x] Wire `ruff` into Neovim diagnostics through `nvim-lint`
+### Git deployment and identity
+
+- [ ] Move `user.name` and `user.email` out of the shared `git/.gitconfig`.
+      Put identity in `~/.gitconfig.local`, or use `includeIf "gitdir:..."`
+      files when personal and work repositories require different identities.
+- [ ] Add `git` to `STOW_PACKAGES` after handling an existing
+      `~/.gitconfig` safely, then verify the resulting include paths.
+
+### Missing commands used by existing configuration
+
+- [ ] Add `build-essential` (or at minimum `make`) and `unzip` to the bootstrap.
+      Neovim health checks require them, telescope-fzf-native builds with
+      `make`, and LuaSnip can build its regex module with `make`.
+- [ ] Install and verify `lazygit`; tmux and Snacks already expose Lazygit
+      keybindings.
+- [ ] Install and verify `xclip` for the current tmux clipboard bindings.
+- [ ] Add `wl-clipboard` support and select `wl-copy` on Wayland while retaining
+      `xclip` as the X11 fallback.
+- [ ] Add `jq` to the base CLI set for JSON-heavy shell and GitHub workflows.
+
+### Bootstrap validation
+
+- [ ] Add a repository check command or script covering at least:
+      `bash -n install.sh`, zsh syntax, `git diff --check`, and a headless
+      Neovim startup.
+- [ ] Add ShellCheck coverage for `install.sh`; keep Neovim's Mason-managed
+      ShellCheck for editor diagnostics, but make repository validation easy to
+      run outside Neovim.
+- [ ] Test `install.sh --dry-run` and Stow conflict handling in a temporary
+      HOME so bootstrap changes cannot overwrite a real home directory.
+- [ ] Validate bootstrap/package changes on the Ubuntu 26.04 WSL baseline.
+      Treat checks run on the Ubuntu 20.04 development host as limited
+      development feedback, not as an Ubuntu 20.04 compatibility promise.
+
+---
+
+## 3. Optional workflow enhancements
+
+These are candidates, not commitments. Add them only after confirming a real
+workflow need.
+
+### Shell and CLI
+
+- [ ] Evaluate Atuin locally first. The zsh hook already exists; if adopted,
+      add installation, a stowed config, history import instructions, and
+      privacy filters before enabling synchronization.
+- [ ] Add a ripgrep config and Bat theme only when there are concrete defaults
+      worth sharing across machines.
+- [ ] Evaluate `mise` for language/tool versions and task definitions without
+      duplicating direnv's per-directory environment role.
+- [ ] Evaluate `uv` if Python project and virtual-environment management becomes
+      part of the regular workflow.
+- [ ] Evaluate Yazi as a terminal file manager, preferably through a tmux popup
+      rather than as another Neovim file-tree plugin.
+
+### Neovim
+
+- [ ] Add `nvim-dap` only when an actual debugging workflow is ready. Start
+      with `codelldb` for C/C++ and/or `debugpy` for Python; add a UI extension
+      only after the core mappings work.
+- [ ] Evaluate `overseer.nvim` for repeatable build, run, and test tasks,
+      especially for C/C++ projects whose output should feed quickfix or
+      diagnostics.
+- [ ] Evaluate Neotest only after choosing concrete test adapters. Prefer
+      Overseer for custom C++/Bazel workflows that do not map cleanly to a
+      Neotest adapter.
+- [ ] Enable `nvim-web-devicons` only after setting up a Nerd Font and changing
+      `vim.g.have_nerd_font`; it is currently declared conditionally and not
+      installed in the lockfile.
+
+Avoid adding replacements for capabilities already owned by Telescope,
+Neo-tree, bufferline, Trouble, Noice, Snacks, or Grug-far unless the existing
+tool has a demonstrated limitation.
