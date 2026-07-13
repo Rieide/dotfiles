@@ -7,8 +7,9 @@ set -Eeuo pipefail
 # - inventory every expected package/tool before making changes;
 # - preserve an installed tool only when its version and source satisfy policy;
 # - keep independent installation and Stow failures non-blocking;
-# - install only for the current target OS; unsupported systems get a manual
-#   action in the final summary instead of compatibility fallbacks;
+# - assume the declared target OS and do not add compatibility fallbacks;
+#   non-target systems may try the same steps, with failures left for manual
+#   resolution in the final summary;
 # - distinguish required bootstrap dependencies from preferred user tools.
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,14 +22,12 @@ DO_INSTALL=1
 DO_STOW=1
 DRY_RUN=0
 SKIP_REMOTE=0
-OS_SUPPORTED=0
 APT_METADATA_READY=0
 
 TARGET_OS="Ubuntu 26.04"
 
 # Required means required by the bootstrap process itself. User-facing tools are
-# preferred so an old/unsupported distribution does not trigger compatibility
-# repositories or source builds automatically.
+# preferred so a failed user tool does not block the rest of the bootstrap.
 APT_REQUIRED_PACKAGES=(
   ca-certificates
   curl
@@ -198,9 +197,11 @@ Options:
 
 Behavior:
   - Targets Ubuntu 26.04.
+  - Does not preflight distribution/architecture compatibility for preferred
+    release binaries; non-target failures are reported for manual resolution.
   - Inventories versions and sources before making changes.
   - Skips already-satisfied packages and tools.
-  - Does not add compatibility fallbacks on unsupported operating systems.
+  - Does not add compatibility fallbacks for non-target systems.
   - Continues independent work after a failure and prints a final summary.
   - Leaves secrets and ~/.zshrc.local manual.
 EOF
@@ -282,21 +283,18 @@ initialize_summary() {
   done
 }
 
-detect_os() {
+report_target_assumptions() {
+  log "Target assumptions: ${TARGET_OS}, Linux x86_64"
+
   if [[ ! -r /etc/os-release ]]; then
-    warn "Cannot detect OS: /etc/os-release is missing"
+    warn "Host OS information is unavailable; continuing with target assumptions"
     return 0
   fi
 
   # shellcheck disable=SC1091
   source /etc/os-release
 
-  if [[ "${ID:-}" == "ubuntu" && "${VERSION_ID:-}" == "26.04" ]]; then
-    OS_SUPPORTED=1
-    log "Detected target OS: ${TARGET_OS}"
-  else
-    warn "Installer target is ${TARGET_OS}; detected ${PRETTY_NAME:-unknown OS}. Preferred tools that need installation will be left for manual setup"
-  fi
+  log "Detected host (informational only): ${PRETTY_NAME:-unknown OS}"
 }
 
 installed_deb_version() {
@@ -403,13 +401,8 @@ inspect_sesh() {
     fi
 
     if [[ "${version}" != "${SESH_VERSION}" ]]; then
-      if [[ "${OS_SUPPORTED}" -eq 1 && "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]]; then
-        ITEM_STATE["${key}"]="needs-install"
-        set_result "${key}" "PENDING" "managed binary is ${version:-unknown}; pinned version is ${SESH_VERSION}"
-      else
-        ITEM_STATE["${key}"]="failed"
-        set_result "${key}" "FAILED" "managed binary is ${version:-unknown}, but this platform cannot use the pinned Linux x86_64 release"
-      fi
+      ITEM_STATE["${key}"]="needs-install"
+      set_result "${key}" "PENDING" "managed binary is ${version:-unknown}; pinned version is ${SESH_VERSION}"
       return 0
     fi
 
@@ -424,13 +417,8 @@ inspect_sesh() {
     return 0
   fi
 
-  if [[ "${OS_SUPPORTED}" -eq 1 && "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]]; then
-    ITEM_STATE["${key}"]="needs-install"
-    set_result "${key}" "PENDING" "not installed; pinned release v${SESH_VERSION} is available for Linux x86_64"
-  else
-    ITEM_STATE["${key}"]="failed"
-    set_result "${key}" "FAILED" "pinned release supports the target Linux x86_64 platform only; manual installation required"
-  fi
+  ITEM_STATE["${key}"]="needs-install"
+  set_result "${key}" "PENDING" "not installed; will try pinned target release v${SESH_VERSION} (${SESH_ARCHIVE})"
 }
 
 canonical_github_remote() {
@@ -561,7 +549,7 @@ inspect_preferred_item() {
     fi
 
     if [[ -n "${minimum}" ]] && ! version_satisfies "${version}" "${minimum}"; then
-      if [[ "${OS_SUPPORTED}" -eq 1 && "${kind}" == "apt" ]]; then
+      if [[ "${kind}" == "apt" ]]; then
         ITEM_STATE["tool:${item}"]="needs-install"
         set_result "tool:${item}" "PENDING" "${detail}; minimum ${minimum}; apt upgrade required"
       else
@@ -576,7 +564,7 @@ inspect_preferred_item() {
     return 0
   fi
 
-  if [[ "${OS_SUPPORTED}" -eq 0 || "${kind}" == "manual" ]]; then
+  if [[ "${kind}" == "manual" ]]; then
     ITEM_STATE["tool:${item}"]="failed"
     set_result "tool:${item}" "FAILED" "not installed; manual installation required"
   else
@@ -1159,7 +1147,7 @@ main() {
   log "Log file: ${LOG_FILE}"
 
   initialize_summary
-  detect_os
+  report_target_assumptions
   inventory_expected_content
 
   if [[ "${DO_INSTALL}" -eq 1 ]]; then

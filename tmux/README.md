@@ -21,8 +21,10 @@ vim-tmux-navigator、resurrect 和 continuum。配置中没有启动时克隆、
 ```
 
 `--skip-remote` 禁止 sesh 下载、插件 clone/fetch 以及其他上游安装器。每个项目
-都是 preferred：单个网络错误、GitHub 限流、旧系统或不支持的架构不会中止其他
-独立步骤。最终表格中的结果含义如下：
+都是 preferred：单个网络错误、GitHub 限流或二进制执行失败不会中止其他独立步骤。
+安装器以 Ubuntu 26.04 Linux x86_64 为目标假设，不为旧系统添加兼容分支，也不在
+下载 sesh 前判断发行版或架构；非目标环境中的失败项留在汇总中供人工处理。
+最终表格中的结果含义如下：
 
 | 结果 | 含义 |
 | --- | --- |
@@ -125,8 +127,8 @@ sesh popup 只读取现有 tmux sessions 与 zoxide 目录，不含配置 sessio
 连接或创建 session，Esc 关闭。首版没有 kill/delete session 快捷键。
 
 若 sesh 或 fzf 缺失，popup 会显示明确提示并等待 Enter 关闭。zoxide 缺失时仍列出
-现有 tmux sessions，只是不显示目录记录。重新运行 `./install.sh --install-only`
-可修复受支持平台上的缺项。
+现有 tmux sessions，只是不显示目录记录。在目标 Ubuntu 26.04 环境中重新运行
+`./install.sh --install-only` 可安装缺项；若汇总仍为 `FAILED`，按日志提示人工处理。
 
 ### 复制模式
 

@@ -2,9 +2,10 @@
 
 Maintained roadmap for this GNU Stow-based dotfiles repository.
 
-The active development and deployment baseline is the personal computer running
-WSL with Ubuntu 26.04 and zsh as the interactive shell. Older Ubuntu releases
-remain out of scope unless support is added deliberately.
+The active development and deployment baseline is Ubuntu 26.04 Linux with zsh
+as the interactive shell. Older Ubuntu releases remain out of scope unless
+support is added deliberately; the installer may attempt target steps there,
+but does not add compatibility branches.
 
 The checked items below describe the current repository baseline. Unchecked items
 are actual follow-up work. `install.sh`, the stowed configuration, and Neovim's
@@ -53,10 +54,12 @@ proxies, tokens, and experiments belong in local files such as
 
 - [x] Configure zsh, true color, mouse support, vi copy mode, `C-a` prefix,
       path-aware splits, Vim-style pane navigation, resizing, and popups.
-- [x] Configure TPM with `tmux-sensible`, `tmux-resurrect`, and
-      `tmux-continuum`, including automatic TPM bootstrap.
-- [x] Add fzf session switching, a Lazygit popup, and OS clipboard copy
-      bindings.
+- [x] Install TPM, `tmux-sensible`, `tmux-resurrect`, `tmux-continuum`, and
+      vim-tmux-navigator at pinned commits without startup-time cloning or
+      plugin updates.
+- [x] Use a sesh/fzf popup for tmux and zoxide sessions, add seamless
+      Neovim/tmux navigation, keep safe layout-only persistence, and retain the
+      Lazygit popup and current xclip bindings.
 
 ### Git
 

@@ -21,8 +21,8 @@ environment:
 - `git` as a shared public configuration with Delta, identity enforcement, and
   staged secret scanning
 - `lazygit` as the terminal Git UI used directly, through tmux, and from Neovim
-- shell-adjacent CLI tools such as `fzf`, `zoxide`, `eza`, `bat`, `ripgrep`,
-  `direnv`, `delta`, and `gitleaks`
+- shell-adjacent CLI tools such as `fzf`, `zoxide`, `sesh`, `eza`, `bat`,
+  `ripgrep`, `direnv`, `delta`, and `gitleaks`
 - reusable templates, currently including a personal `clang-format` style
 - a best-effort bootstrap script for installing the current preferred toolset and
   stowing selected packages
@@ -84,8 +84,9 @@ The Neovim package has its own short notes in `nvim/README.md`.
 
 ## Bootstrap
 
-The supported target is Ubuntu 26.04 under WSL. Review the planned operations
-before the first real run:
+The supported target is Ubuntu 26.04 Linux. The installer assumes that target;
+it does not implement backward-compatibility branches. Review the planned
+operations before the first real run:
 
 ```sh
 ./install.sh --dry-run
@@ -259,9 +260,11 @@ One missing package, source conflict, or temporary network failure must not
 prevent unrelated tools or Stow links from being applied.
 
 This repository follows a "current machines, current tools" model. The current
-Linux target is Ubuntu 26.04. On older releases such as Ubuntu 20.04, missing or
-outdated preferred tools are reported for manual installation; the script does
-not add compatibility PPAs, compile source, or substitute an unintended provider.
+Linux target is Ubuntu 26.04. A non-target system may attempt the same preferred
+installation steps, but that behavior is not compatibility-tested or guaranteed.
+The script does not add compatibility PPAs, compile source, or substitute an
+unintended provider; failed summary items are resolved manually and then the
+installer can be rerun.
 
 ### Do Not Automate Private State
 
@@ -285,7 +288,7 @@ This keeps common improvements flowing through one main history.
 
 - inventory every expected package/tool before installation
 - skip existing tools that satisfy version and provider policy
-- install eligible missing tools on the supported target OS
+- install eligible missing tools using the Ubuntu 26.04 target assumptions
 - run Stow independently for selected packages
 - log what happened
 - print `SKIPPED`, `INSTALLED`, `PLANNED`, and `FAILED` results in a final table
@@ -319,6 +322,14 @@ Some tools are intentionally installed outside the default Ubuntu archive:
 - `starship` uses the official install script.
 - `zoxide` uses the upstream install script.
 - `eza` uses the official eza Debian/Ubuntu repository.
+- `sesh` uses a pinned official Linux x86_64 release archive, verifies its
+  SHA256, installs the binary under `~/.local/bin`, and generates Zsh completion.
+
+The tmux plugins TPM, tmux-sensible, tmux-resurrect, tmux-continuum, and
+vim-tmux-navigator are cloned from their official repositories and checked out
+at commits pinned in `install.sh`. Dirty or unexpected-source plugin directories
+are reported without being overwritten. See `tmux/README.md` for the complete
+tmux installation and maintenance workflow.
 
 The tracked configuration also requires Git 2.35 or newer for `zdiff3` and tmux
 3.2 or newer for popup support. An existing tool from another source is preserved
