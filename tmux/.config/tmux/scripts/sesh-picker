@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -u
+
+pause_with_error() {
+  printf '\n%s\n\nPress Enter to close this popup.' "$1" >&2
+  read -r _
+  exit 1
+}
+
+command -v sesh >/dev/null 2>&1 || pause_with_error "sesh is missing. Run ./install.sh --install-only, then retry."
+command -v fzf >/dev/null 2>&1 || pause_with_error "fzf is missing. Run ./install.sh --install-only, then retry."
+
+selection="$({
+  sesh list -t
+  if command -v zoxide >/dev/null 2>&1; then
+    sesh list -z
+  fi
+} | awk 'NF && !seen[$0]++' | fzf \
+  --no-sort \
+  --border \
+  --border-label=' sesh: tmux + zoxide ' \
+  --prompt='session> ' \
+  --header='Enter connect | Esc close' \
+  --preview-window='right:55%' \
+  --preview='sesh preview {}')"
+
+[[ -n "${selection}" ]] || exit 0
+exec sesh connect --switch "${selection}"

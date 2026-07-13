@@ -20,6 +20,7 @@ return {
   require 'custom.plugins.snacks',
   require 'custom.plugins.sonokai',
   require 'custom.plugins.telescope',
+  require 'custom.plugins.tmux-navigator',
   require 'custom.plugins.treesitter-textobjects',
   require 'custom.plugins.trouble',
 }

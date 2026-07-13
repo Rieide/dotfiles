@@ -223,14 +223,8 @@ vim.keymap.set({ 'n', 'x', 'o' }, '<right>', 'j', { desc = 'Move down one line' 
 vim.keymap.set({ 'n', 'x', 'o' }, '<up>', '{', { desc = 'Jump to previous paragraph' })
 vim.keymap.set({ 'n', 'x', 'o' }, '<down>', '}', { desc = 'Jump to next paragraph' })
 
--- Keybinds to make split navigation easier.
---  Use CTRL+<hjkl> to switch between windows
---
---  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+-- Ctrl-h/j/k/l navigation is provided by custom.plugins.tmux-navigator so it
+-- can cross Neovim/tmux boundaries without wrapping or dropping tmux zoom.
 vim.keymap.set('n', '<leader>\\', '<C-w>v', { desc = 'Split window vertically' })
 vim.keymap.set('n', '<leader>-', '<C-w>s', { desc = 'Split window horizontally' })
 
