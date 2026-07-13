@@ -12,10 +12,10 @@
 [core]
 	editor = nvim
 	hooksPath = ~/.config/git/hooks
-	pager = delta
+	pager = $HOME/.local/bin/git-delta-pager
 
 [interactive]
-	diffFilter = delta --color-only
+	diffFilter = $HOME/.local/bin/git-delta-filter
 
 [delta]
 	syntax-theme = Nord

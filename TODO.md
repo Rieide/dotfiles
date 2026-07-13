@@ -28,6 +28,9 @@ proxies, tokens, and experiments belong in local files such as
       stow-only, skip-remote, and dry-run modes.
 - [x] Log installation failures, continue independent work, verify expected
       commands, and summarize failures at the end.
+- [x] Inventory installed versions and providers before mutation, skip satisfied
+      tools, enforce configuration-driven minimums, and summarize per-tool
+      postconditions in a table.
 - [x] Keep secrets and machine-local overrides out of Git via `*local*`
       ignore rules.
 - [x] Keep package requirements in the auditable arrays in `install.sh` rather
@@ -72,8 +75,9 @@ proxies, tokens, and experiments belong in local files such as
       documented client-side hook bypass boundary.
 - [x] Install and configure Lazygit with Neovim editing and Delta paging; expose
       it through the terminal, tmux popup, and Neovim Snacks integration.
-- [x] Scan staged content with a global Gitleaks hook while keeping full-history
-      scans manual and documenting the standard `--no-verify` bypass.
+- [x] Scan staged content with a global Gitleaks hook when available, warn and
+      continue when the preferred binary is missing, keep full-history scans
+      manual, and document the standard `--no-verify` bypass.
 
 ### Neovim
 

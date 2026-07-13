@@ -5,6 +5,10 @@ NOTES.md
 *local*
 local.zsh
 
+# GNU Stow package policy files are shared configuration, not machine-local
+# overrides, despite containing "local" in their conventional filename.
+!**/.stow-local-ignore
+
 # Shared executable in the Git Stow package; do not let the broad *local*
 # machine-override rule hide ~/.local/bin/git-identity-check.
 !git/.local/

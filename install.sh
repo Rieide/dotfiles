@@ -3,12 +3,13 @@ set -Eeuo pipefail
 
 # Personal dotfiles bootstrap.
 #
-# Philosophy:
-# - zsh config is defensive: missing tools must not break shell startup.
-# - this installer is best-effort: install everything that can be installed.
-# - failures must be loud and auditable in the log, but should not block later steps.
-# - no old-distro compatibility fallbacks; tune for the current target OS.
-# - secrets and machine-local files stay manual.
+# Policy:
+# - inventory every expected package/tool before making changes;
+# - preserve an installed tool only when its version and source satisfy policy;
+# - keep independent installation and Stow failures non-blocking;
+# - install only for the current target OS; unsupported systems get a manual
+#   action in the final summary instead of compatibility fallbacks;
+# - distinguish required bootstrap dependencies from preferred user tools.
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/dotfiles"
@@ -20,30 +21,39 @@ DO_INSTALL=1
 DO_STOW=1
 DRY_RUN=0
 SKIP_REMOTE=0
-INSTALL_FAILURES=()
+OS_SUPPORTED=0
+APT_METADATA_READY=0
 
-APT_BASE_PACKAGES=(
+TARGET_OS="Ubuntu 26.04"
+
+# Required means required by the bootstrap process itself. User-facing tools are
+# preferred so an old/unsupported distribution does not trigger compatibility
+# repositories or source builds automatically.
+APT_REQUIRED_PACKAGES=(
   ca-certificates
   curl
-  direnv
-  fd-find
-  fzf
-  git
   gnupg
-  neovim
-  ripgrep
   stow
-  tmux
   wget
   zsh
 )
 
-APT_PREFERRED_PACKAGES=(
+PREFERRED_ITEMS=(
+  direnv
+  fd
+  fzf
+  git
+  nvim
+  rg
+  tmux
   bat
-  git-delta
+  delta
   gitleaks
   lazygit
   zsh-autosuggestions
+  eza
+  starship
+  zoxide
 )
 
 STOW_PACKAGES=(
@@ -55,22 +65,103 @@ STOW_PACKAGES=(
   zsh
 )
 
+declare -A ITEM_KIND=(
+  [direnv]="apt"
+  [fd]="apt"
+  [fzf]="apt"
+  [git]="apt"
+  [nvim]="snap"
+  [rg]="apt"
+  [tmux]="apt"
+  [bat]="apt"
+  [delta]="apt"
+  [gitleaks]="apt"
+  [lazygit]="apt"
+  [zsh-autosuggestions]="apt"
+  [eza]="remote"
+  [starship]="remote"
+  [zoxide]="remote"
+)
+
+declare -A ITEM_PACKAGE=(
+  [direnv]="direnv"
+  [fd]="fd-find"
+  [fzf]="fzf"
+  [git]="git"
+  [nvim]=""
+  [rg]="ripgrep"
+  [tmux]="tmux"
+  [bat]="bat"
+  [delta]="git-delta"
+  [gitleaks]="gitleaks"
+  [lazygit]="lazygit"
+  [zsh-autosuggestions]="zsh-autosuggestions"
+  [eza]="eza"
+  [starship]="starship"
+  [zoxide]="zoxide"
+)
+
+declare -A ITEM_COMMAND=(
+  [direnv]="direnv"
+  [fd]="fdfind"
+  [fzf]="fzf"
+  [git]="git"
+  [nvim]="nvim"
+  [rg]="rg"
+  [tmux]="tmux"
+  [bat]="batcat"
+  [delta]="delta"
+  [gitleaks]="gitleaks"
+  [lazygit]="lazygit"
+  [zsh-autosuggestions]=""
+  [eza]="eza"
+  [starship]="starship"
+  [zoxide]="zoxide"
+)
+
+# Only constraints justified by the tracked configuration belong here.
+declare -A ITEM_MIN_VERSION=(
+  [git]="2.35"
+  [nvim]="0.11"
+  [tmux]="3.2"
+)
+
+# Empty means any existing source is accepted. Installation still follows
+# ITEM_KIND. Neovim is intentionally Snap-only to avoid an older apt binary
+# shadowing /snap/bin/nvim.
+declare -A ITEM_ALLOWED_SOURCES=(
+  [nvim]="snap"
+)
+
+declare -A ITEM_VERSION_ARGS=(
+  [tmux]="-V"
+  [gitleaks]="version"
+)
+
+declare -a SUMMARY_KEYS=()
+declare -A SUMMARY_LABEL=()
+declare -A SUMMARY_CLASS=()
+declare -A SUMMARY_STATUS=()
+declare -A SUMMARY_DETAIL=()
+declare -A ITEM_STATE=()
+
 usage() {
   cat <<'EOF'
 Usage: ./install.sh [options]
 
 Options:
-  --install-only   Install tools but do not run stow
-  --stow-only      Run stow but do not install tools
-  --skip-remote    Skip remote installers and third-party apt repositories
-  --dry-run        Print commands without executing them
+  --install-only   Install tools but do not run Stow
+  --stow-only      Run Stow but do not install tools
+  --skip-remote    Skip upstream installers and third-party repositories
+  --dry-run        Inventory the machine and print planned commands
   -h, --help       Show this help
 
 Behavior:
-  - Targets the current preferred Ubuntu release, presently Ubuntu 26.04.
-  - Installs best-effort: failures are logged loudly and later steps continue.
-  - Writes a log under ~/.local/state/dotfiles/.
-  - Runs Stow only for packages whose required command is available afterward.
+  - Targets Ubuntu 26.04.
+  - Inventories versions and sources before making changes.
+  - Skips already-satisfied packages and tools.
+  - Does not add compatibility fallbacks on unsupported operating systems.
+  - Continues independent work after a failure and prints a final summary.
   - Leaves secrets and ~/.zshrc.local manual.
 EOF
 }
@@ -86,24 +177,6 @@ warn() {
 die() {
   printf '\nERROR: %s\n' "$*" | tee -a "${LOG_FILE}" >&2
   exit 1
-}
-
-command_string() {
-  local rendered=""
-  local part
-
-  for part in "$@"; do
-    printf -v part '%q' "${part}"
-    rendered+="${part} "
-  done
-
-  printf '%s\n' "${rendered% }"
-}
-
-record_failure() {
-  local message="$1"
-  INSTALL_FAILURES+=("${message}")
-  warn "${message}; continuing"
 }
 
 run() {
@@ -123,41 +196,51 @@ run_shell() {
   printf '+ %s\n' "$*" | tee -a "${LOG_FILE}"
 
   if [[ "${DRY_RUN}" -eq 0 ]]; then
-    bash -c "$*" 2>&1 | tee -a "${LOG_FILE}"
+    bash -o pipefail -c "$*" 2>&1 | tee -a "${LOG_FILE}"
     return "${PIPESTATUS[0]}"
   fi
 }
 
-try_run() {
-  local rendered
-  rendered="$(command_string "$@")"
+add_summary_item() {
+  local key="$1"
+  local label="$2"
+  local class="$3"
 
-  if run "$@"; then
-    return 0
+  if [[ -z "${SUMMARY_LABEL[${key}]+x}" ]]; then
+    SUMMARY_KEYS+=("${key}")
   fi
 
-  record_failure "Command failed: ${rendered}"
-  return 0
+  SUMMARY_LABEL["${key}"]="${label}"
+  SUMMARY_CLASS["${key}"]="${class}"
+  SUMMARY_STATUS["${key}"]="PENDING"
+  SUMMARY_DETAIL["${key}"]="not inspected"
 }
 
-try_run_shell() {
-  local command_text="$*"
+set_result() {
+  local key="$1"
+  local status="$2"
+  local detail="$3"
 
-  if run_shell "$@"; then
-    return 0
-  fi
-
-  record_failure "Command failed: ${command_text}"
-  return 0
+  SUMMARY_STATUS["${key}"]="${status}"
+  SUMMARY_DETAIL["${key}"]="${detail}"
 }
 
-check_cmd() {
-  command -v "$1" >/dev/null 2>&1 || record_failure "Missing expected command after install: $1"
+initialize_summary() {
+  local package
+  local item
+
+  for package in "${APT_REQUIRED_PACKAGES[@]}"; do
+    add_summary_item "required:${package}" "${package}" "required"
+  done
+
+  for item in "${PREFERRED_ITEMS[@]}"; do
+    add_summary_item "tool:${item}" "${item}" "preferred"
+  done
 }
 
 detect_os() {
   if [[ ! -r /etc/os-release ]]; then
-    record_failure "Cannot detect OS: /etc/os-release is missing"
+    warn "Cannot detect OS: /etc/os-release is missing"
     return 0
   fi
 
@@ -165,163 +248,497 @@ detect_os() {
   source /etc/os-release
 
   if [[ "${ID:-}" == "ubuntu" && "${VERSION_ID:-}" == "26.04" ]]; then
-    log "Detected target OS: Ubuntu 26.04"
+    OS_SUPPORTED=1
+    log "Detected target OS: ${TARGET_OS}"
   else
-    warn "This installer is tuned for Ubuntu 26.04; detected ${PRETTY_NAME:-unknown OS}. Continuing without compatibility guarantees"
+    warn "Installer target is ${TARGET_OS}; detected ${PRETTY_NAME:-unknown OS}. Preferred tools that need installation will be left for manual setup"
   fi
 }
 
-install_available_apt_packages() {
-  local group="$1"
-  shift
+installed_deb_version() {
+  local package="$1"
+  local result
 
-  local pkg
-  for pkg in "$@"; do
-    if ! apt-cache show "${pkg}" >/dev/null 2>&1; then
-      record_failure "Skipping ${group} apt package unavailable in current apt sources: ${pkg}"
+  result="$(dpkg-query -W -f='${Status}\t${Version}' "${package}" 2>/dev/null || true)"
+  if [[ "${result}" == "install ok installed"$'\t'* ]]; then
+    printf '%s\n' "${result#*$'\t'}"
+  fi
+}
+
+candidate_deb_version() {
+  local package="$1"
+  apt-cache policy "${package}" 2>/dev/null | sed -n 's/^[[:space:]]*Candidate:[[:space:]]*//p' | head -n 1
+}
+
+detect_command_source() {
+  local path="$1"
+
+  case "${path}" in
+    /snap/bin/*)
+      printf '%s\n' snap
+      ;;
+    "${HOME}"/.local/bin/*)
+      printf '%s\n' local
+      ;;
+    "${HOME}"/miniconda3/*|*/conda/*)
+      printf '%s\n' conda
+      ;;
+    /usr/local/bin/*)
+      printf '%s\n' upstream
+      ;;
+    /usr/bin/*|/bin/*)
+      printf '%s\n' apt
+      ;;
+    *)
+      printf '%s\n' other
+      ;;
+  esac
+}
+
+command_version_output() {
+  local item="$1"
+  local path="$2"
+  local args_text="${ITEM_VERSION_ARGS[${item}]:---version}"
+  local -a args=()
+  local snap_command
+  local snap_binary
+
+  read -r -a args <<<"${args_text}"
+
+  # Calling a Snap launcher can fail in restricted/containerized validation
+  # even though the installed payload is healthy. Inspect the payload directly
+  # while retaining /snap/bin/... as the provider path in the summary.
+  if [[ "${path}" == /snap/bin/* ]]; then
+    snap_command="${path##*/}"
+    snap_binary="/snap/${snap_command}/current/usr/bin/${snap_command}"
+    if [[ -x "${snap_binary}" ]]; then
+      if [[ "${snap_command}" == "nvim" ]]; then
+        NVIM_LOG_FILE=/dev/null "${snap_binary}" "${args[@]}" 2>/dev/null || true
+      else
+        "${snap_binary}" "${args[@]}" 2>/dev/null || true
+      fi
+      return 0
+    fi
+  fi
+
+  "${path}" "${args[@]}" 2>/dev/null || true
+}
+
+extract_version() {
+  local text="$1"
+  grep -Eo '[0-9]+([.][0-9]+)+' <<<"${text}" | head -n 1 || true
+}
+
+version_satisfies() {
+  local actual="$1"
+  local minimum="$2"
+  dpkg --compare-versions "${actual}" ge "${minimum}"
+}
+
+source_is_allowed() {
+  local source="$1"
+  local allowed="$2"
+
+  [[ -z "${allowed}" || " ${allowed} " == *" ${source} "* ]]
+}
+
+inspect_required_package() {
+  local package="$1"
+  local version
+
+  version="$(installed_deb_version "${package}")"
+  if [[ -n "${version}" ]]; then
+    ITEM_STATE["required:${package}"]="satisfied"
+    set_result "required:${package}" "SKIPPED" "apt ${version} is already installed"
+  else
+    ITEM_STATE["required:${package}"]="needs-install"
+    set_result "required:${package}" "PENDING" "required apt package is missing"
+  fi
+}
+
+inspect_preferred_item() {
+  local item="$1"
+  local kind="${ITEM_KIND[${item}]}"
+  local package="${ITEM_PACKAGE[${item}]}"
+  local command="${ITEM_COMMAND[${item}]}"
+  local minimum="${ITEM_MIN_VERSION[${item}]:-}"
+  local allowed_sources="${ITEM_ALLOWED_SOURCES[${item}]:-}"
+  local path=""
+  local source=""
+  local output=""
+  local version=""
+  local detail=""
+
+  if [[ -z "${command}" ]]; then
+    version="$(installed_deb_version "${package}")"
+    if [[ -n "${version}" ]]; then
+      ITEM_STATE["tool:${item}"]="satisfied"
+      set_result "tool:${item}" "SKIPPED" "apt ${version} is already installed"
+      return 0
+    fi
+  elif path="$(command -v "${command}" 2>/dev/null)" && [[ -n "${path}" ]]; then
+    source="$(detect_command_source "${path}")"
+    output="$(command_version_output "${item}" "${path}")"
+    version="$(extract_version "${output}")"
+    detail="${path} (${source}${version:+, ${version}})"
+
+    if ! source_is_allowed "${source}" "${allowed_sources}"; then
+      ITEM_STATE["tool:${item}"]="failed"
+      set_result "tool:${item}" "FAILED" "${detail}; allowed source: ${allowed_sources}; manual action required"
+      return 0
+    fi
+
+    if [[ -n "${minimum}" && -z "${version}" ]]; then
+      ITEM_STATE["tool:${item}"]="failed"
+      set_result "tool:${item}" "FAILED" "${detail}; cannot assert minimum ${minimum}"
+      return 0
+    fi
+
+    if [[ -n "${minimum}" ]] && ! version_satisfies "${version}" "${minimum}"; then
+      if [[ "${OS_SUPPORTED}" -eq 1 && "${kind}" == "apt" ]]; then
+        ITEM_STATE["tool:${item}"]="needs-install"
+        set_result "tool:${item}" "PENDING" "${detail}; minimum ${minimum}; apt upgrade required"
+      else
+        ITEM_STATE["tool:${item}"]="failed"
+        set_result "tool:${item}" "FAILED" "${detail}; minimum ${minimum}; manual upgrade required"
+      fi
+      return 0
+    fi
+
+    ITEM_STATE["tool:${item}"]="satisfied"
+    set_result "tool:${item}" "SKIPPED" "${detail} already satisfies policy"
+    return 0
+  fi
+
+  if [[ "${OS_SUPPORTED}" -eq 0 || "${kind}" == "manual" ]]; then
+    ITEM_STATE["tool:${item}"]="failed"
+    set_result "tool:${item}" "FAILED" "not installed; manual installation required"
+  else
+    ITEM_STATE["tool:${item}"]="needs-install"
+    set_result "tool:${item}" "PENDING" "not installed; planned source: ${kind}"
+  fi
+}
+
+inventory_expected_content() {
+  log "Inventorying expected packages, versions, and sources"
+
+  local package
+  local item
+  for package in "${APT_REQUIRED_PACKAGES[@]}"; do
+    inspect_required_package "${package}"
+  done
+
+  for item in "${PREFERRED_ITEMS[@]}"; do
+    inspect_preferred_item "${item}"
+  done
+}
+
+ensure_apt_metadata() {
+  if [[ "${APT_METADATA_READY}" -eq 1 ]]; then
+    return 0
+  fi
+
+  log "Updating apt package metadata"
+  if run sudo apt-get update; then
+    APT_METADATA_READY=1
+    return 0
+  fi
+
+  warn "apt metadata update failed; dependent package installations will be marked failed"
+  return 1
+}
+
+install_required_packages() {
+  log "Installing missing required bootstrap packages"
+
+  local package
+  local key
+  local version
+  for package in "${APT_REQUIRED_PACKAGES[@]}"; do
+    key="required:${package}"
+    [[ "${ITEM_STATE[${key}]}" == "needs-install" ]] || continue
+
+    if ! ensure_apt_metadata; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "apt metadata unavailable"
       continue
     fi
 
-    try_run sudo apt install -y "${pkg}"
+    if ! apt-cache show "${package}" >/dev/null 2>&1; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "package is unavailable in configured apt sources"
+      continue
+    fi
+
+    if run sudo apt-get install -y "${package}"; then
+      if [[ "${DRY_RUN}" -eq 1 ]]; then
+        set_result "${key}" "PLANNED" "would install from apt"
+        continue
+      fi
+      version="$(installed_deb_version "${package}")"
+      if [[ -n "${version}" ]]; then
+        ITEM_STATE["${key}"]="satisfied"
+        set_result "${key}" "INSTALLED" "apt ${version}"
+      else
+        ITEM_STATE["${key}"]="failed"
+        set_result "${key}" "FAILED" "apt command succeeded but package verification failed"
+      fi
+    else
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "apt installation command failed"
+    fi
   done
 }
 
-install_apt_packages() {
-  log "Updating apt package metadata"
-  try_run sudo apt update
+install_preferred_apt_items() {
+  log "Installing eligible preferred apt tools"
 
-  log "Installing base apt packages"
-  install_available_apt_packages "base" "${APT_BASE_PACKAGES[@]}"
+  local item
+  local key
+  local package
+  local minimum
+  local candidate
+  for item in "${PREFERRED_ITEMS[@]}"; do
+    [[ "${ITEM_KIND[${item}]}" == "apt" ]] || continue
+    key="tool:${item}"
+    [[ "${ITEM_STATE[${key}]}" == "needs-install" ]] || continue
+    package="${ITEM_PACKAGE[${item}]}"
+    minimum="${ITEM_MIN_VERSION[${item}]:-}"
 
-  log "Installing preferred apt packages"
-  install_available_apt_packages "preferred" "${APT_PREFERRED_PACKAGES[@]}"
+    if ! ensure_apt_metadata; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "apt metadata unavailable; manual installation required"
+      continue
+    fi
+
+    candidate="$(candidate_deb_version "${package}")"
+    if [[ -z "${candidate}" || "${candidate}" == "(none)" ]]; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "${package} is unavailable in configured apt sources; manual installation required"
+      continue
+    fi
+
+    if [[ -n "${minimum}" ]] && ! version_satisfies "${candidate}" "${minimum}"; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "apt candidate ${candidate} is below minimum ${minimum}; manual installation required"
+      continue
+    fi
+
+    if run sudo apt-get install -y "${package}"; then
+      if [[ "${DRY_RUN}" -eq 1 ]]; then
+        set_result "${key}" "PLANNED" "would install ${package} ${candidate} from apt"
+        continue
+      fi
+      inspect_preferred_item "${item}"
+      if [[ "${ITEM_STATE[${key}]}" == "satisfied" ]]; then
+        SUMMARY_STATUS["${key}"]="INSTALLED"
+      else
+        set_result "${key}" "FAILED" "apt installation completed but version/source verification failed"
+      fi
+    else
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "apt installation command failed"
+    fi
+  done
 }
 
-install_starship() {
-  log "Installing starship"
-  try_run_shell 'curl -sS https://starship.rs/install.sh | sh -s -- -y'
-}
+install_preferred_snap_items() {
+  log "Installing eligible preferred Snap tools"
 
-install_zoxide() {
-  log "Installing zoxide"
-  try_run_shell 'curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh'
+  local item
+  local key
+  for item in "${PREFERRED_ITEMS[@]}"; do
+    [[ "${ITEM_KIND[${item}]}" == "snap" ]] || continue
+    key="tool:${item}"
+    [[ "${ITEM_STATE[${key}]}" == "needs-install" ]] || continue
+
+    if ! command -v snap >/dev/null 2>&1; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "snap is unavailable; manual installation required"
+      continue
+    fi
+
+    if run sudo snap install "${item}" --classic --channel=latest/stable; then
+      if [[ "${DRY_RUN}" -eq 1 ]]; then
+        set_result "${key}" "PLANNED" "would install from Snap latest/stable"
+        continue
+      fi
+      inspect_preferred_item "${item}"
+      if [[ "${ITEM_STATE[${key}]}" == "satisfied" ]]; then
+        SUMMARY_STATUS["${key}"]="INSTALLED"
+      else
+        set_result "${key}" "FAILED" "Snap installation completed but version/source verification failed"
+      fi
+    else
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "Snap installation command failed"
+    fi
+  done
 }
 
 install_eza_repo() {
-  log "Installing eza from the official eza Debian/Ubuntu repository"
-  try_run sudo mkdir -p /etc/apt/keyrings
-  try_run_shell 'wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | gpg --dearmor | sudo tee /etc/apt/keyrings/gierens.gpg >/dev/null'
-  try_run_shell 'echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list >/dev/null'
-  try_run sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
-  try_run sudo apt update
-  try_run sudo apt install -y eza
+  run sudo mkdir -p /etc/apt/keyrings || return 1
+  run_shell 'wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | gpg --dearmor | sudo tee /etc/apt/keyrings/gierens.gpg >/dev/null' || return 1
+  run_shell 'echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list >/dev/null' || return 1
+  run sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list || return 1
+  run sudo apt-get update || return 1
+  run sudo apt-get install -y eza
 }
 
-verify_tools() {
-  log "Verifying expected commands"
+run_remote_installer() {
+  local item="$1"
 
-  local required_commands=(
-    curl
-    direnv
-    fdfind
-    fzf
-    git
-    gpg
-    nvim
-    rg
-    stow
-    tmux
-    wget
-    zsh
-  )
+  case "${item}" in
+    eza)
+      install_eza_repo
+      ;;
+    starship)
+      run_shell 'curl -sS https://starship.rs/install.sh | sh -s -- -y'
+      ;;
+    zoxide)
+      run_shell 'curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh'
+      ;;
+  esac
+}
 
-  local preferred_commands=(
-    batcat
-    delta
-    gitleaks
-    lazygit
-  )
+install_remote_items() {
+  log "Installing eligible preferred upstream tools"
 
-  local remote_commands=(
-    eza
-    starship
-    zoxide
-  )
+  local item
+  local key
+  for item in eza starship zoxide; do
+    key="tool:${item}"
+    [[ "${ITEM_STATE[${key}]}" == "needs-install" ]] || continue
 
-  local cmd
-  for cmd in "${required_commands[@]}"; do
-    check_cmd "${cmd}"
+    if [[ "${SKIP_REMOTE}" -eq 1 ]]; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "remote installation disabled; manual installation required"
+      continue
+    fi
+
+    if run_remote_installer "${item}"; then
+      if [[ "${DRY_RUN}" -eq 1 ]]; then
+        set_result "${key}" "PLANNED" "would install from upstream source"
+        continue
+      fi
+      inspect_preferred_item "${item}"
+      if [[ "${ITEM_STATE[${key}]}" == "satisfied" ]]; then
+        SUMMARY_STATUS["${key}"]="INSTALLED"
+      else
+        set_result "${key}" "FAILED" "installer completed but version/source verification failed"
+      fi
+    else
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "upstream installation command failed"
+    fi
   done
-
-  for cmd in "${preferred_commands[@]}"; do
-    check_cmd "${cmd}"
-  done
-
-  if [[ "${SKIP_REMOTE}" -eq 1 ]]; then
-    warn "Skipping remote tool verification"
-  else
-    for cmd in "${remote_commands[@]}"; do
-      check_cmd "${cmd}"
-    done
-  fi
 }
 
 stow_command_for_package() {
   case "$1" in
     tmux)
-      printf "%s\n" tmux
+      printf '%s\n' tmux
       ;;
     zsh)
-      printf "%s\n" zsh
+      printf '%s\n' zsh
       ;;
     *)
-      printf "%s\n" "$1"
+      printf '%s\n' "$1"
       ;;
   esac
 }
 
-stow_dotfiles() {
-  log "Stowing dotfile packages"
-  cd "${ROOT_DIR}"
+stow_package_is_already_satisfied() {
+  local package="$1"
 
-  if ! command -v stow >/dev/null 2>&1; then
-    record_failure "Cannot stow dotfiles: stow command is missing"
-    return 0
-  fi
-
-  local package
-  local required_command
-  local packages_to_stow=()
-
-  for package in "${STOW_PACKAGES[@]}"; do
-    required_command="$(stow_command_for_package "${package}")"
-    if command -v "${required_command}" >/dev/null 2>&1; then
-      packages_to_stow+=("${package}")
-    else
-      record_failure "Skipping stow package ${package}: missing command ${required_command}"
-    fi
-  done
-
-  if [[ "${#packages_to_stow[@]}" -eq 0 ]]; then
-    warn "No stow packages available to link"
-    return 0
-  fi
-
-  try_run stow --target="${HOME}" --no-folding "${packages_to_stow[@]}"
+  case "${package}" in
+    nvim)
+      [[ -L "${HOME}/.config/nvim" ]] || return 1
+      [[ "$(readlink -f "${HOME}/.config/nvim")" == "$(readlink -f "${ROOT_DIR}/nvim/.config/nvim")" ]]
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
-summarize_failures() {
-  if [[ "${#INSTALL_FAILURES[@]}" -eq 0 ]]; then
-    log "Dotfiles bootstrap completed without recorded failures"
-    return 0
-  fi
+simulate_stow() {
+  local package="$1"
 
-  warn "Dotfiles bootstrap completed with ${#INSTALL_FAILURES[@]} recorded failure(s). Review log: ${LOG_FILE}"
+  printf '+ stow --simulate --verbose=1 --target=%q --no-folding %q\n' "${HOME}" "${package}" | tee -a "${LOG_FILE}"
+  stow --simulate --verbose=1 --target="${HOME}" --no-folding "${package}" 2>&1 | tee -a "${LOG_FILE}"
+  return "${PIPESTATUS[0]}"
+}
 
-  local failure
-  for failure in "${INSTALL_FAILURES[@]}"; do
-    printf '  - %s\n' "${failure}" | tee -a "${LOG_FILE}" >&2
+stow_dotfiles() {
+  log "Stowing dotfile packages independently"
+  cd "${ROOT_DIR}"
+
+  local package
+  local command
+  local key
+  for package in "${STOW_PACKAGES[@]}"; do
+    key="stow:${package}"
+    add_summary_item "${key}" "${package}" "stow"
+    command="$(stow_command_for_package "${package}")"
+
+    if ! command -v stow >/dev/null 2>&1; then
+      set_result "${key}" "FAILED" "stow command is missing"
+      continue
+    fi
+
+    if ! command -v "${command}" >/dev/null 2>&1; then
+      set_result "${key}" "FAILED" "required command ${command} is missing"
+      continue
+    fi
+
+    if stow_package_is_already_satisfied "${package}"; then
+      set_result "${key}" "SKIPPED" "existing link already points to this package"
+      continue
+    fi
+
+    if [[ "${DRY_RUN}" -eq 1 ]]; then
+      if simulate_stow "${package}"; then
+        set_result "${key}" "PLANNED" "would apply Stow package"
+      else
+        set_result "${key}" "FAILED" "Stow simulation found a conflict; other packages continued"
+      fi
+    elif run stow --target="${HOME}" --no-folding "${package}"; then
+      set_result "${key}" "INSTALLED" "Stow package applied"
+    else
+      set_result "${key}" "FAILED" "Stow conflict or command failure; other packages continued"
+    fi
   done
+}
+
+print_summary() {
+  log "Installation summary"
+
+  {
+    printf '%-24s %-11s %-10s %s\n' TOOL CLASS RESULT DETAIL
+    printf '%-24s %-11s %-10s %s\n' '------------------------' '-----------' '----------' '------'
+
+    local key
+    for key in "${SUMMARY_KEYS[@]}"; do
+      printf '%-24s %-11s %-10s %s\n' \
+        "${SUMMARY_LABEL[${key}]}" \
+        "${SUMMARY_CLASS[${key}]}" \
+        "${SUMMARY_STATUS[${key}]}" \
+        "${SUMMARY_DETAIL[${key}]}"
+    done
+  } | tee -a "${LOG_FILE}"
+
+  local failed=0
+  local key
+  for key in "${SUMMARY_KEYS[@]}"; do
+    [[ "${SUMMARY_STATUS[${key}]}" == "FAILED" ]] && ((failed += 1))
+  done
+
+  if [[ "${failed}" -eq 0 ]]; then
+    log "Bootstrap completed without failed postconditions"
+  else
+    warn "Bootstrap completed with ${failed} failed postcondition(s). Review: ${LOG_FILE}"
+  fi
 }
 
 parse_args() {
@@ -358,39 +775,30 @@ main() {
   parse_args "$@"
 
   mkdir -p "${LOG_DIR}"
-  : > "${LOG_FILE}"
+  : >"${LOG_FILE}"
 
-  trap 'die "bootstrap failed at line ${LINENO}. Log: ${LOG_FILE}"' ERR
+  trap 'die "bootstrap failed unexpectedly at line ${LINENO}. Log: ${LOG_FILE}"' ERR
 
   log "Dotfiles bootstrap started"
   log "Repository: ${ROOT_DIR}"
   log "Log file: ${LOG_FILE}"
 
+  initialize_summary
   detect_os
+  inventory_expected_content
 
   if [[ "${DO_INSTALL}" -eq 1 ]]; then
-    install_apt_packages
-
-    if [[ "${SKIP_REMOTE}" -eq 1 ]]; then
-      warn "Skipping remote installers and third-party repositories"
-    else
-      install_starship
-      install_zoxide
-      install_eza_repo
-    fi
-
-    if [[ "${DRY_RUN}" -eq 1 ]]; then
-      warn "Dry run: skipping command verification"
-    else
-      verify_tools
-    fi
+    install_required_packages
+    install_preferred_apt_items
+    install_preferred_snap_items
+    install_remote_items
   fi
 
   if [[ "${DO_STOW}" -eq 1 ]]; then
     stow_dotfiles
   fi
 
-  summarize_failures
+  print_summary
 }
 
 main "$@"

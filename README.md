@@ -92,10 +92,10 @@ before the first real run:
 ./install.sh
 ```
 
-The real run updates apt metadata, installs the configured package groups, runs
-the selected upstream installers, verifies expected commands, and stows every
-available package into `$HOME`. It may request sudo authentication. Logs are
-written to:
+Every run first inventories expected package versions, executable paths, and
+providers. Already-satisfied entries are skipped. A real run installs only the
+missing eligible entries, then applies each Stow package independently. It may
+request sudo authentication. Logs are written to:
 
 ```text
 ~/.local/state/dotfiles/install-YYYYMMDD-HHMMSS.log
@@ -156,9 +156,10 @@ Private policy files must be regular files owned by the current user with mode
 
 A separate global `pre-commit` hook runs
 `gitleaks protect --staged --redact` before every commit. It scans only staged
-content, fails closed if Gitleaks is unavailable, and leaves full-history scans
-as an explicit manual or CI task. `git commit --no-verify` bypasses this standard
-pre-commit hook, but it does not bypass the `prepare-commit-msg` identity check.
+content when Gitleaks is installed, emits a visible skip warning when the
+preferred tool is unavailable, and leaves full-history scans as an explicit
+manual or CI task. `git commit --no-verify` bypasses this standard pre-commit
+hook, but it does not bypass the `prepare-commit-msg` identity check.
 
 This is a guardrail, not a security boundary against the account owner. A user
 or process with permission to change Git configuration can replace
@@ -178,9 +179,10 @@ and demonstrates the documented `core.hooksPath` local-bypass boundary.
 
 ## Git Workflow
 
-Delta is the default Git pager, with the Nord syntax theme, line numbers,
-navigation, and side-by-side output. It is used automatically by commands such
-as:
+Delta is the preferred Git pager, with the Nord syntax theme, line numbers,
+navigation, and side-by-side output. A tracked wrapper falls back to `less` or
+`cat` when Delta is not installed, so the preferred tool can remain optional.
+It is used automatically by commands such as:
 
 ```sh
 git diff
@@ -190,8 +192,8 @@ git log -p
 git blame path/to/file
 ```
 
-Lazygit uses Neovim as its editor and Delta as its diff pager. The configured
-entry points are:
+Lazygit uses Neovim as its editor and the same Delta-with-fallback wrapper as
+its diff pager. The configured entry points are:
 
 ```text
 terminal: lazygit
@@ -199,8 +201,9 @@ tmux:     prefix + g
 Neovim:  <Space>gg
 ```
 
-The global Gitleaks hook checks staged content automatically. Ubuntu 26.04
-currently packages the older Gitleaks command interface, so manual scans use:
+When Gitleaks is available, the global hook checks staged content automatically.
+Ubuntu 26.04 currently packages the older Gitleaks command interface, so manual
+scans use:
 
 ```sh
 # Current files only
@@ -210,8 +213,9 @@ gitleaks detect --no-git --redact --source .
 gitleaks detect --redact --source .
 ```
 
-The pre-commit scan prevents accidental leaks but remains a local guardrail:
-`git commit --no-verify` bypasses it. The separate identity hook still runs for
+The pre-commit scan prevents accidental leaks but remains a local guardrail. A
+missing Gitleaks binary skips the scan with a warning, and `git commit
+--no-verify` bypasses it explicitly. The separate identity hook still runs for
 `--no-verify` commits.
 
 This split should stay boring and explicit. A new machine should be able to use
@@ -240,21 +244,24 @@ command -v tool >/dev/null 2>&1 && ...
 The config can take advantage of modern tools, but it should not make login or
 interactive shell startup fragile.
 
-### Keep the Installer Best-Effort and Auditable
+### Keep the Installer State-Aware, Best-Effort, and Auditable
 
 The installer has a different job from the shell config.
 
-Shell config is defensive. The installer is best-effort and auditable.
+Shell config is defensive. The installer is state-aware, best-effort, and
+auditable.
 
-The installer should install the current preferred toolset in a best-effort way.
-Failures should be loud and auditable in the log, but they should not abort later
-steps that could still succeed. This keeps the bootstrap comfortable: one missing
-package or temporary network failure should not prevent unrelated tools or Stow
-links from being applied.
+Before changing the machine, the installer checks whether every expected package
+or command is already present and whether declared version/provider constraints
+are satisfied. Satisfied entries are preserved. Failures should be loud and
+auditable in the final table, but they should not abort later independent work.
+One missing package, source conflict, or temporary network failure must not
+prevent unrelated tools or Stow links from being applied.
 
 This repository follows a "current machines, current tools" model. The current
-Linux target is Ubuntu 26.04; older releases such as Ubuntu 20.04 are out of
-scope unless support is added deliberately later.
+Linux target is Ubuntu 26.04. On older releases such as Ubuntu 20.04, missing or
+outdated preferred tools are reported for manual installation; the script does
+not add compatibility PPAs, compile source, or substitute an unintended provider.
 
 ### Do Not Automate Private State
 
@@ -276,10 +283,12 @@ This keeps common improvements flowing through one main history.
 
 `install.sh` is intended to be a pragmatic bootstrap helper:
 
-- install the current preferred tools
-- run Stow for selected packages
+- inventory every expected package/tool before installation
+- skip existing tools that satisfy version and provider policy
+- install eligible missing tools on the supported target OS
+- run Stow independently for selected packages
 - log what happened
-- record failures loudly, summarize them at the end, and keep going
+- print `SKIPPED`, `INSTALLED`, `PLANNED`, and `FAILED` results in a final table
 - leave local/private configuration manual
 
 It is not intended to be a compatibility layer for every Linux release. When a
@@ -289,28 +298,36 @@ and later steps should remain useful.
 
 ## Ubuntu 26.04 Package Expectations
 
-The bootstrap script expects Ubuntu 26.04 apt sources to provide the base CLI
-set directly:
+Required apt packages are limited to bootstrap/system dependencies:
 
 ```text
-ca-certificates curl direnv fd-find fzf git gnupg neovim ripgrep stow tmux wget zsh
+ca-certificates curl gnupg stow wget zsh
 ```
 
-It also tries preferred apt packages when they are available:
+User-facing tools are preferred rather than bootstrap-critical. On Ubuntu 26.04,
+the script may install these from apt when their candidate version satisfies the
+declared minimum:
 
 ```text
-bat git-delta gitleaks lazygit zsh-autosuggestions
+bat direnv fd-find fzf git git-delta gitleaks lazygit ripgrep tmux zsh-autosuggestions
 ```
 
 Some tools are intentionally installed outside the default Ubuntu archive:
 
+- `nvim` uses Snap `latest/stable` with classic confinement and must be at least
+  version 0.11; the script will not install an apt replacement.
 - `starship` uses the official install script.
 - `zoxide` uses the upstream install script.
 - `eza` uses the official eza Debian/Ubuntu repository.
 
+The tracked configuration also requires Git 2.35 or newer for `zdiff3` and tmux
+3.2 or newer for popup support. An existing tool from another source is preserved
+unless that tool has an explicit provider restriction, as Neovim does.
+
 Package names and command names are not always identical on Ubuntu. The script
 verifies `fd-find` as `fdfind`, `bat` as `batcat`, and `git-delta` as `delta`.
-When `--skip-remote` is used, remote-only tools are not installed or verified.
+When `--skip-remote` is used, a missing remote-only tool is left as a manual
+action in the summary.
 
 ## Roadmap
 

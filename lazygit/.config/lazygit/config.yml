@@ -3,4 +3,4 @@ os:
 
 git:
   pagers:
-    - pager: delta --dark --paging=never
+    - pager: $HOME/.local/bin/git-delta-pager --dark --paging=never
