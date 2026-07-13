@@ -1,182 +1,238 @@
-# tmux 美化与增强计划
+# tmux 使用与维护指南
 
-当前配置文件位于 `.config/tmux/tmux.conf`，使用 tmux 3.6。现有配置已经覆盖真彩色、Vi 复制模式、鼠标、pane 边框、popup、TPM，以及会话保存与恢复。
+这套配置面向 Ubuntu Linux 和 tmux 3.2 以上版本，当前由 GNU Stow 链接到
+`~/.config/tmux`。它用 tmux 原生选项实现 Kanagawa Wave 外观，并组合 sesh、
+vim-tmux-navigator、resurrect 和 continuum。配置中没有启动时克隆、自动升级或
+主题黑箱；工具版本、插件来源和行为都可以在仓库中直接审查。
 
-这份文档用于记录可配置范围、候选插件和后续实施顺序。配置调试完成后，再将本分支合并回主分支。
+## 安装
 
-## 当前基础
-
-- `tmux-256color` 和 `terminal-features` 提供 RGB 真彩色支持。
-- Prefix 已从 `C-b` 改为 `C-a`。
-- 使用 `prefix + h/j/k/l` 切换 pane，`prefix + H/J/K/L` 调整大小。
-- 新 window 和 split 继承当前 pane 的工作目录。
-- 已配置 lazygit、scratch shell 和 fzf session switcher popup。
-- 状态栏当前为简洁的深色风格，活动 pane 使用蓝色边框。
-- TPM 管理 `tmux-sensible`、`tmux-resurrect` 和 `tmux-continuum`。
-
-## tmux 的主要可配置项
-
-| 范围 | 常见选项 | 用途 |
-| --- | --- | --- |
-| 终端能力 | `default-terminal`、`terminal-features` | 真彩色、下划线、剪贴板和终端兼容 |
-| 状态栏 | `status-style`、`status-left`、`status-right`、`status-position`、`status-justify` | 状态栏颜色、位置和内容布局 |
-| 窗口标签 | `window-status-format`、`window-status-current-format`、对应的 `*-style` | 显示窗口序号、名称和状态 |
-| Pane 边框 | `pane-border-style`、`pane-active-border-style`、`pane-border-lines` | 区分活动与非活动 pane |
-| Pane 标题 | `pane-border-status`、`pane-border-format` | 在边框显示路径、命令或主机名 |
-| 提示与模式 | `message-style`、`mode-style`、`clock-mode-colour` | 命令提示、复制模式和时钟的颜色 |
-| 行为 | `mouse`、`history-limit`、`escape-time`、`focus-events` | 鼠标、滚动历史和编辑器响应 |
-| 窗口与编号 | `base-index`、`pane-base-index`、`renumber-windows`、`automatic-rename` | 控制编号与窗口命名 |
-| 快捷键 | `prefix`、`bind-key`、`unbind-key` 和 key tables | 分屏、导航、复制、popup 等交互 |
-| Hooks | `set-hook` | 在创建窗口、切换客户端或主题改变时运行命令 |
-
-样式可以直接使用十六进制颜色：
-
-```tmux
-set -g status-style "fg=#dcd7ba,bg=#1f1f28"
-setw -g window-status-current-style "fg=#1f1f28,bg=#7e9cd8,bold"
-```
-
-状态栏和边框可以使用动态格式：
-
-```tmux
-#{session_name}
-#{window_index}
-#{window_name}
-#{window_flags}
-#{pane_current_path}
-#{pane_current_command}
-```
-
-本机可通过以下命令探索当前选项、快捷键和格式值：
+在仓库根目录执行：
 
 ```sh
-tmux show-options -g
-tmux show-options -gw
-tmux list-keys
-tmux display-message -a
+./install.sh --dry-run
+./install.sh
 ```
 
-完整语法参见 [tmux 官方手册](https://man.openbsd.org/tmux.1)。
+只安装工具和插件、不运行 Stow：
 
-## 美化原则
-
-### 1. 与现有工具使用统一色板
-
-Neovim 当前实际启用 Kanagawa，因此首选方案是用 tmux 原生配置实现 Kanagawa 风格。这样可以与 Neovim 和 lualine 保持一致，同时减少主题插件带来的加载顺序和版本问题。
-
-建议语义色：
-
-- 背景：`#1f1f28`
-- 普通前景：`#dcd7ba`
-- 次要文字：`#727169`
-- 当前窗口和活动边框：`#7e9cd8`
-- 活动或提示：`#e6c384`
-- 错误或响铃：`#e46876`
-
-### 2. 保持清晰的视觉层级
-
-状态栏背景保持低对比度，只重点突出：
-
-- 当前 session 和 window
-- 当前 pane 边框
-- Prefix、复制模式或同步输入状态
-- activity、bell 和 zoom 标记
-
-当前配置开启了 `monitor-activity`，但窗口格式没有显示 `#F`。实施时应保留窗口状态标记，例如：
-
-```tmux
-setw -g window-status-format " #I:#W#F "
-setw -g window-status-current-format " #I:#W#F "
+```sh
+./install.sh --install-only
 ```
 
-### 3. 状态栏只保留高价值信息
+`--skip-remote` 禁止 sesh 下载、插件 clone/fetch 以及其他上游安装器。每个项目
+都是 preferred：单个网络错误、GitHub 限流、旧系统或不支持的架构不会中止其他
+独立步骤。最终表格中的结果含义如下：
 
-推荐布局：
+| 结果 | 含义 |
+| --- | --- |
+| `SKIPPED` | 已安装内容的来源、版本/commit 和工作区状态满足策略 |
+| `INSTALLED` | 本次已安装、生成 completion 或切换到固定 commit |
+| `PLANNED` | dry-run 中会执行的动作 |
+| `FAILED` | 该项未达到后置条件；其他项目仍会继续 |
+
+### 固定版本
+
+版本表集中位于仓库根目录的 `install.sh`：
+
+| 项目 | 固定版本或 commit |
+| --- | --- |
+| sesh | `2.26.2` |
+| TPM | `e261deb1b47614eed3400089ce7197dc68acc4eb` |
+| tmux-sensible | `25cb91f42d020f675bb0a2ce3fbd3a5d96119efa` |
+| tmux-resurrect | `cff343cf9e81983d3da0c8562b01616f12e8d548` |
+| tmux-continuum | `0698e8f4b17d6454c71bf5212895ec055c578da0` |
+| vim-tmux-navigator | `e41c431a0c7b7388ae7ba341f01a0d217eb3a432` |
+
+sesh 使用官方 `sesh_Linux_x86_64.tar.gz`，安装器在写入
+`~/.local/bin/sesh` 前校验 SHA256：
 
 ```text
-[session]  1:zsh  2:nvim  3:server              path  host  time
+4a5cdd75a38c6e3167ab80d419a9973097b2f7e1b63c8150c4e6db8e40c6d803
 ```
 
-不默认加入天气、公网 IP、CPU、内存等频繁执行外部命令的模块。只有确实会被使用的信息才进入状态栏。
+安装器还会运行 `sesh completion zsh`，写入
+`${XDG_DATA_HOME:-~/.local/share}/zsh/site-functions/_sesh`。共享 `.zshrc` 在
+`compinit` 前把该目录加入 `fpath`。
 
-### 4. 补齐交互状态的配色
+### 插件目录安全策略
 
-除了 `status-style` 和 pane 边框，还应统一：
+所有 tmux 插件位于 `~/.config/tmux/plugins`，插件源码不纳入 dotfiles Git：
 
-```tmux
-set -g message-style "..."
-set -g mode-style "..."
-set -g copy-mode-match-style "..."
-set -g copy-mode-current-match-style "..."
+- 目录缺失时，先 clone 到同一文件系统的临时目录，checkout 固定 commit，成功后
+  再原子移动到目标位置。
+- origin 是对应官方 GitHub 仓库、工作区干净且 HEAD 正确时跳过。
+- origin 正确、工作区干净但 HEAD 不同时，切换到固定 commit；本地已有对象时不需
+  联网，否则才 fetch。
+- 有 tracked/untracked 修改、origin 不符、目录不是 Git 仓库时均标记 `FAILED`，
+  不改 remote、不 stash、不 reset、不删除目录。
+
+TPM 仅负责按声明顺序加载插件。其安装、更新和清理键 `Prefix+I`、`Prefix+U`、
+`Prefix+M-u` 会在加载后解除，防止绕开版本表。升级流程只有一种：修改
+`install.sh` 中的版本/commit 和 sesh SHA256，审查上游差异，然后重新运行安装器。
+
+## 外观和状态栏
+
+Kanagawa Wave 色板集中在 `tmux.conf` 的 `@kanagawa_*` 用户选项。状态栏、窗口、
+pane、消息、command prompt、复制模式、搜索匹配、popup 和 clock 都复用这些颜色，
+没有主题插件或 Nerd Font 字符。
+
+状态栏固定在底部：
+
+- 左侧显示 session 名；`PREFIX`、`COPY`、`SYNC`、`ZOOM` 只在对应状态生效时出现。
+- 中间由 tmux 原生 window list 填充，格式为编号、名称以及 `A`（activity）、
+  `B`（bell）、`Z`（zoom）标志。
+- 右侧显示最多 40 字符的当前 pane 完整路径；只有 tmux 环境中存在
+  `SSH_CONNECTION` 时才显示主机名；最后是 `YYYY-MM-DD HH:MM`。
+- 刷新周期为 60 秒。配置本身不执行 CPU、天气、Git 状态等高频外部命令。
+
+continuum 为实现定时保存，会在运行时向 `status-right` 前置一个轻量、带十分钟
+限流的保存检查。这是持久化机制，不是展示模块；不要用主题配置覆盖运行时的
+`status-right`，否则 continuum 无法触发。
+
+Pane 使用 heavy border。非活动边框是低对比 Kanagawa 背景色，活动边框为蓝色。
+只有活动 pane 的上边框显示截断路径和当前命令，非活动 pane 不显示标题。
+
+## 快捷键
+
+Prefix 是 `Ctrl-a`；下表中的 `Prefix+x` 表示先按 `Ctrl-a`，松开后再按 `x`。
+
+### Window 和 pane
+
+| 快捷键 | 行为 |
+| --- | --- |
+| `Prefix+Ctrl-a` | 向前台程序发送原始 `Ctrl-a` |
+| `Prefix+\` | 在当前目录左右分屏 |
+| `Prefix+-` | 在当前目录上下分屏 |
+| `Prefix+c` | 在当前目录新建 window |
+| `Prefix+h/j/k/l` | 向左/下/上/右选择 pane |
+| `Prefix+H/J/K/L` | 向左/下/上/右调整 pane 5 格，可重复 |
+| `Prefix+n` / `Prefix+p` | 下一个 / 上一个 window，可重复 |
+| `Prefix+Tab` | 回到上次使用的 window |
+| `Prefix+S` | 切换 synchronize-panes；开启时显示 `SYNC` |
+| `Prefix+r` | 重新加载 `tmux.conf` |
+
+### Popup
+
+| 快捷键 | 行为 |
+| --- | --- |
+| `Prefix+g` | 在当前目录打开 80% × 80% lazygit |
+| `Prefix+Ctrl-p` | 在当前目录打开 70% × 70% 临时 shell |
+| `Prefix+Ctrl-f` | 打开 80% × 70% sesh session 选择器 |
+
+sesh popup 只读取现有 tmux sessions 与 zoxide 目录，不含配置 session、目录扫描或
+私人项目路径。fzf 保持 sesh 顺序，右侧 55% 用 `sesh preview` 展示预览；Enter
+连接或创建 session，Esc 关闭。首版没有 kill/delete session 快捷键。
+
+若 sesh 或 fzf 缺失，popup 会显示明确提示并等待 Enter 关闭。zoxide 缺失时仍列出
+现有 tmux sessions，只是不显示目录记录。重新运行 `./install.sh --install-only`
+可修复受支持平台上的缺项。
+
+### 复制模式
+
+Vi copy mode 通过 `Prefix+[` 进入（tmux 默认键）：
+
+| 快捷键 | 行为 |
+| --- | --- |
+| `v` | 开始选择 |
+| `Ctrl-v` | 切换矩形选择 |
+| `y` / `Enter` | 复制到 X11 clipboard 并退出 copy mode |
+| 鼠标拖选后松开 | 复制到 X11 clipboard |
+| `Ctrl-h/j/k/l` | 不循环地选择相邻 tmux pane |
+
+复制目前直接调用 `xclip -selection clipboard -in`。因此 X11 下需要 `xclip` 和有效
+`DISPLAY`；Wayland、纯 SSH 或没有 xclip 时 copy mode 本身仍工作，但外部剪贴板
+命令会失败。`set-clipboard on` 同时允许支持 OSC 52 的应用/终端设置剪贴板。
+
+## Neovim 与 tmux 无缝导航
+
+vim-tmux-navigator 同时由 TPM 和 Neovim lazy.nvim 声明，并在两边固定为同一个
+commit。普通模式下直接按 `Ctrl-h/j/k/l`：
+
+1. Neovim 内有相邻 split 时先在 split 间移动。
+2. 到达 Neovim 边缘时移动到相邻 tmux pane。
+3. 到达最外侧 tmux 边缘时停住，不绕到另一侧。
+4. tmux window 已 zoom 时使用 `select-pane -Z`，导航不会取消 zoom。
+
+`g:tmux_navigator_save_on_switch=0`，切换不会自动保存 buffer。`Ctrl-\` 在 Neovim
+和 tmux 两边均未映射到 navigator，继续作为终端 SIGQUIT；上一 pane 仍可使用 tmux
+自己的带 Prefix 命令。插件缺失时，带 Prefix 的 h/j/k/l 导航始终可用。
+
+排障时可在 Neovim 运行：
+
+```vim
+:TmuxNavigatorProcessList
+:verbose nmap <C-h>
 ```
 
-Powerline 分隔符和图标属于可选增强，需要 Nerd Font。即使缺少图标字体，状态栏文字也应保持可读。
+映射应指向 `TmuxNavigateLeft/Down/Up/Right`，而不是直接 `<C-w>`/`wincmd`。
 
-## 主题候选
+## 保存与恢复
 
-主题插件只选择一个，避免多个插件同时覆盖状态栏选项。
+tmux-resurrect 保存 session、window、pane、pane command、布局和工作目录；配置明确
+设置 `@resurrect-capture-pane-contents off`，不会保存 pane 当前可见文本、shell 输出
+或屏幕内容。
 
-- [Catppuccin for tmux](https://github.com/catppuccin/tmux)：模块化程度高，提供 Latte、Frappé、Macchiato 和 Mocha；建议固定版本。
-- [Dracula for tmux](https://github.com/dracula/tmux)：内置 CPU、内存、Git、网络、电池等大量模块，适合偏完整的状态栏。
-- [tmux-powerline](https://github.com/erikw/tmux-powerline)：高度可扩展的分段式状态栏，但配置复杂度和外部命令开销更高。
-- 原生 Kanagawa：与当前 Neovim 最协调、依赖最少，是本计划的首选。
+| 快捷键 / 事件 | 行为 |
+| --- | --- |
+| `Prefix+Ctrl-s` | 立即保存 |
+| `Prefix+Ctrl-r` | 手动恢复最近一次保存 |
+| 每 10 分钟 | continuum 自动保存一次 |
+| 新 tmux server 启动 | continuum 尝试自动恢复 |
 
-## 功能增强候选
+自动恢复只发生在新 server 的启动窗口，不等同于每个新 client 都恢复。若插件缺失，
+tmux 配置仍能加载，但手动保存/恢复键和自动保存/恢复不可用。安装插件后建议完全退出
+旧 server 再启动，或 `Prefix+r` 重新加载后检查绑定。
 
-### 已安装
+恢复文件默认位于 resurrect 的用户数据目录。遇到异常时先手动保存，检查可用空间和
+目录权限，再确认：
 
-- [TPM](https://github.com/tmux-plugins/tpm)：插件管理器。
-- [tmux-sensible](https://github.com/tmux-plugins/tmux-sensible)：通用基础设置。
-- [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect)：保存 session、window、pane、布局与工作目录。
-- [tmux-continuum](https://github.com/tmux-plugins/tmux-continuum)：定时保存并自动恢复 tmux 环境。
-
-### 推荐评估
-
-- [vim-tmux-navigator](https://github.com/christoomey/vim-tmux-navigator)：使用 `Ctrl-h/j/k/l` 在 Neovim split 与 tmux pane 之间无缝导航。
-- [tmux-sessionx](https://github.com/omerxx/tmux-sessionx)：提供预览和 fuzzy finder 的 session 管理界面。
-- [sesh](https://github.com/joshmedeski/sesh)：结合项目目录、Zoxide 和 tmux 管理 session；它是外部工具而不只是 TPM 插件。
-- [tmux-which-key](https://github.com/alexwforsythe/tmux-which-key)：以 popup 展示快捷键菜单，适合绑定逐渐增多后的配置。
-- [tmux-yank](https://github.com/tmux-plugins/tmux-yank)：跨 Linux 与 macOS 的系统剪贴板支持。当前配置已直接调用 `xclip`，仅在迁移到 Wayland 或需要跨平台时考虑。
-- [tmux-open](https://github.com/tmux-plugins/tmux-open)：从复制模式快速打开 URL 或文件。
-- [tmux-fzf](https://github.com/sainnhe/tmux-fzf)：通过 fzf 管理 session、window、pane 和 key bindings。
-
-session 管理工具应在 `tmux-sessionx`、`sesh` 和 `tmux-fzf` 之间按实际工作流选择，避免功能重复。
-
-## 实施计划
-
-### 第一阶段：原生 Kanagawa 外观
-
-- [ ] 提取并集中定义 Kanagawa 色板。
-- [ ] 调整 status bar、当前窗口和非活动窗口样式。
-- [ ] 给窗口格式加入 activity、bell、zoom flags。
-- [ ] 统一 pane border、message、copy mode 和搜索匹配样式。
-- [ ] 决定是否显示 pane 路径或当前命令。
-- [ ] 在没有 Nerd Font 的终端中确认降级显示正常。
-
-### 第二阶段：导航与 session 管理
-
-- [ ] 评估并配置 `vim-tmux-navigator`，确认与 Neovim 快捷键无冲突。
-- [ ] 在 `tmux-sessionx` 与 `sesh` 中选择一个。
-- [ ] 移除或替换现有重复的 fzf session popup。
-- [ ] 快捷键数量增加后再评估 `tmux-which-key`。
-
-### 第三阶段：兼容与性能验证
-
-- [ ] 重新加载配置并检查 tmux 报错信息。
-- [ ] 验证真彩色、斜体和下划线显示。
-- [ ] 验证 X11/Wayland 剪贴板行为。
-- [ ] 验证 Neovim 内外的 pane 导航。
-- [ ] 验证 resurrect/continuum 保存和恢复。
-- [ ] 检查状态栏刷新是否执行高开销外部命令。
-- [ ] 在本机终端和 SSH 环境分别测试。
-
-## 预期最终组合
-
-```text
-原生 Kanagawa 状态栏
-+ vim-tmux-navigator
-+ tmux-sessionx 或 sesh（二选一）
-+ 保留 tmux-resurrect / tmux-continuum
+```sh
+tmux show-options -g @resurrect-capture-pane-contents
+tmux show-options -g @continuum-save-interval
+tmux list-keys | grep 'C-s\|C-r'
 ```
 
-该组合兼顾一致的视觉风格、Neovim 导航和 session 持久化，同时避免状态栏过载和插件功能重复。
+## SSH、终端和故障处理
+
+- 最低 tmux 版本是 3.2；`display-popup`、RGB、heavy border 和当前格式均按此基线。
+- 终端应支持 `tmux-256color` 和真彩色。颜色异常时检查本地/远端 terminfo，并运行
+  `tmux display-message -p '#{client_termname} #{client_termfeatures}'`。
+- 右侧主机名由 tmux server 的 `SSH_CONNECTION` 环境判断，并在 client attach 时
+  更新 `@ssh_attached`。复用同一个 server 的多个本地/SSH client 时，这个 server
+  级标记以最近 attach 的 client 为准；可用 `tmux show-options -g @ssh_attached` 和
+  `tmux show-environment -g SSH_CONNECTION` 检查。
+- 非官方 origin 或 dirty 插件目录不会被安装器修复。先在该目录内审查 `git status`
+  和 `git remote -v`，自行 commit/stash/迁移后再运行安装器。
+- GitHub 网络失败时保持原目录和 HEAD；看安装日志中的具体 clone/fetch/curl 错误，
+  网络恢复后重跑即可。
+- TPM 缺失不会触发隐式下载，也不会阻止基本 tmux 配置加载。
+
+## 验收清单
+
+自动检查建议：
+
+```sh
+bash -n install.sh
+bash -n tmux/.config/tmux/scripts/sesh-picker
+./install.sh --install-only --dry-run
+git diff --check
+```
+
+再用独立 socket 启动临时 server，检查 `show-options` 和 `list-keys`，避免影响当前
+会话。Neovim 可用 headless 模式确认 lazy spec 与四个映射。
+
+需要在真实终端手动确认：
+
+- [ ] 普通终端和 SSH 中 Kanagawa 真彩色正常，SSH 主机名只在 SSH 时出现。
+- [ ] 长路径会截断，活动 pane 标题包含短路径和当前命令。
+- [ ] Neovim split 与 tmux pane 四向导航顺畅，边缘不循环，zoom 保持。
+- [ ] `Prefix+Ctrl-f` 只显示 tmux 与 zoxide，预览在右侧且能够连接。
+- [ ] resurrect 手动保存/恢复和 continuum 自动恢复有效，保存文件无 pane 文本。
+- [ ] 当前 X11 环境中 `y`、Enter 和鼠标拖选可通过 xclip 复制。
+
+## 延期项目
+
+- TODO：单独设计不依赖 xclip、能识别 X11/Wayland/OSC 52/SSH 的自适应剪贴板方案。
+- which-key、tmux-yank、tmux-open、tmux-fzf 暂不加入，避免快捷键和职责重叠。
+- sesh session 删除快捷键、硬编码项目列表和私人目录均不在首版范围内。
