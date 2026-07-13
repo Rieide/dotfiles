@@ -54,6 +54,7 @@ PREFERRED_ITEMS=(
   eza
   starship
   zoxide
+  sesh
 )
 
 STOW_PACKAGES=(
@@ -81,6 +82,7 @@ declare -A ITEM_KIND=(
   [eza]="remote"
   [starship]="remote"
   [zoxide]="remote"
+  [sesh]="pinned-release"
 )
 
 declare -A ITEM_PACKAGE=(
@@ -99,6 +101,7 @@ declare -A ITEM_PACKAGE=(
   [eza]="eza"
   [starship]="starship"
   [zoxide]="zoxide"
+  [sesh]="sesh"
 )
 
 declare -A ITEM_COMMAND=(
@@ -117,6 +120,7 @@ declare -A ITEM_COMMAND=(
   [eza]="eza"
   [starship]="starship"
   [zoxide]="zoxide"
+  [sesh]="sesh"
 )
 
 # Only constraints justified by the tracked configuration belong here.
@@ -136,6 +140,42 @@ declare -A ITEM_ALLOWED_SOURCES=(
 declare -A ITEM_VERSION_ARGS=(
   [tmux]="-V"
   [gitleaks]="version"
+  [sesh]="--version"
+)
+
+# Pinned tmux tooling. Upgrades are deliberate: change the version or commit
+# here, review the upstream diff, then rerun this installer. TPM is used only
+# to load plugins; it is not allowed to choose or update their revisions.
+SESH_VERSION="2.26.2"
+SESH_ARCHIVE="sesh_Linux_x86_64.tar.gz"
+SESH_SHA256="4a5cdd75a38c6e3167ab80d419a9973097b2f7e1b63c8150c4e6db8e40c6d803"
+SESH_URL="https://github.com/joshmedeski/sesh/releases/download/v${SESH_VERSION}/${SESH_ARCHIVE}"
+SESH_BIN="${HOME}/.local/bin/sesh"
+SESH_COMPLETION_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/zsh/site-functions"
+
+TMUX_PLUGIN_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/tmux/plugins"
+TMUX_PLUGIN_NAMES=(
+  tpm
+  tmux-sensible
+  tmux-resurrect
+  tmux-continuum
+  vim-tmux-navigator
+)
+
+declare -A TMUX_PLUGIN_REPOS=(
+  [tpm]="https://github.com/tmux-plugins/tpm.git"
+  [tmux-sensible]="https://github.com/tmux-plugins/tmux-sensible.git"
+  [tmux-resurrect]="https://github.com/tmux-plugins/tmux-resurrect.git"
+  [tmux-continuum]="https://github.com/tmux-plugins/tmux-continuum.git"
+  [vim-tmux-navigator]="https://github.com/christoomey/vim-tmux-navigator.git"
+)
+
+declare -A TMUX_PLUGIN_COMMITS=(
+  [tpm]="e261deb1b47614eed3400089ce7197dc68acc4eb"
+  [tmux-sensible]="25cb91f42d020f675bb0a2ce3fbd3a5d96119efa"
+  [tmux-resurrect]="cff343cf9e81983d3da0c8562b01616f12e8d548"
+  [tmux-continuum]="0698e8f4b17d6454c71bf5212895ec055c578da0"
+  [vim-tmux-navigator]="e41c431a0c7b7388ae7ba341f01a0d217eb3a432"
 )
 
 declare -a SUMMARY_KEYS=()
@@ -235,6 +275,10 @@ initialize_summary() {
 
   for item in "${PREFERRED_ITEMS[@]}"; do
     add_summary_item "tool:${item}" "${item}" "preferred"
+  done
+
+  for item in "${TMUX_PLUGIN_NAMES[@]}"; do
+    add_summary_item "plugin:${item}" "${item}" "plugin"
   done
 }
 
@@ -342,6 +386,123 @@ source_is_allowed() {
   [[ -z "${allowed}" || " ${allowed} " == *" ${source} "* ]]
 }
 
+inspect_sesh() {
+  local key="tool:sesh"
+  local path=""
+  local output=""
+  local version=""
+
+  if path="$(command -v sesh 2>/dev/null)" && [[ -n "${path}" ]]; then
+    output="$(command_version_output sesh "${path}")"
+    version="$(extract_version "${output}")"
+
+    if [[ "${path}" != "${SESH_BIN}" ]]; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "${path} is not the installer-managed binary ${SESH_BIN}; manual action required"
+      return 0
+    fi
+
+    if [[ "${version}" != "${SESH_VERSION}" ]]; then
+      if [[ "${OS_SUPPORTED}" -eq 1 && "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]]; then
+        ITEM_STATE["${key}"]="needs-install"
+        set_result "${key}" "PENDING" "managed binary is ${version:-unknown}; pinned version is ${SESH_VERSION}"
+      else
+        ITEM_STATE["${key}"]="failed"
+        set_result "${key}" "FAILED" "managed binary is ${version:-unknown}, but this platform cannot use the pinned Linux x86_64 release"
+      fi
+      return 0
+    fi
+
+    if [[ ! -s "${SESH_COMPLETION_DIR}/_sesh" ]]; then
+      ITEM_STATE["${key}"]="needs-completion"
+      set_result "${key}" "PENDING" "sesh ${version} is pinned; zsh completion is missing"
+      return 0
+    fi
+
+    ITEM_STATE["${key}"]="satisfied"
+    set_result "${key}" "SKIPPED" "${SESH_BIN} ${version} and zsh completion satisfy policy"
+    return 0
+  fi
+
+  if [[ "${OS_SUPPORTED}" -eq 1 && "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]]; then
+    ITEM_STATE["${key}"]="needs-install"
+    set_result "${key}" "PENDING" "not installed; pinned release v${SESH_VERSION} is available for Linux x86_64"
+  else
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "pinned release supports the target Linux x86_64 platform only; manual installation required"
+  fi
+}
+
+canonical_github_remote() {
+  local remote="$1"
+  local path=""
+
+  case "${remote}" in
+    https://github.com/*)
+      path="${remote#https://github.com/}"
+      ;;
+    git@github.com:*)
+      path="${remote#git@github.com:}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  path="${path%.git}"
+  printf 'github.com/%s\n' "${path}"
+}
+
+inspect_tmux_plugin() {
+  local name="$1"
+  local key="plugin:${name}"
+  local directory="${TMUX_PLUGIN_DIR}/${name}"
+  local expected_remote="${TMUX_PLUGIN_REPOS[${name}]}"
+  local expected_commit="${TMUX_PLUGIN_COMMITS[${name}]}"
+  local actual_remote=""
+  local actual_canonical=""
+  local expected_canonical=""
+  local actual_commit=""
+  local dirty=""
+
+  if [[ ! -e "${directory}" ]]; then
+    ITEM_STATE["${key}"]="needs-install"
+    set_result "${key}" "PENDING" "missing; pinned commit ${expected_commit:0:12}"
+    return 0
+  fi
+
+  if [[ ! -d "${directory}/.git" ]]; then
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "${directory} is not a Git checkout; left untouched; manual action required"
+    return 0
+  fi
+
+  actual_remote="$(git -C "${directory}" remote get-url origin 2>/dev/null || true)"
+  actual_canonical="$(canonical_github_remote "${actual_remote}" 2>/dev/null || true)"
+  expected_canonical="$(canonical_github_remote "${expected_remote}")"
+  if [[ "${actual_canonical}" != "${expected_canonical}" ]]; then
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "unexpected origin ${actual_remote:-missing}; expected ${expected_remote}; left untouched; manual action required"
+    return 0
+  fi
+
+  dirty="$(git -C "${directory}" status --porcelain --untracked-files=normal 2>/dev/null || true)"
+  if [[ -n "${dirty}" ]]; then
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "working tree has local changes; left untouched; commit or stash them before retrying"
+    return 0
+  fi
+
+  actual_commit="$(git -C "${directory}" rev-parse HEAD 2>/dev/null || true)"
+  if [[ "${actual_commit}" == "${expected_commit}" ]]; then
+    ITEM_STATE["${key}"]="satisfied"
+    set_result "${key}" "SKIPPED" "official origin at pinned commit ${expected_commit:0:12}"
+  else
+    ITEM_STATE["${key}"]="needs-checkout"
+    set_result "${key}" "PENDING" "official clean checkout at ${actual_commit:0:12}; will switch to ${expected_commit:0:12}"
+  fi
+}
+
 inspect_required_package() {
   local package="$1"
   local version
@@ -368,6 +529,11 @@ inspect_preferred_item() {
   local output=""
   local version=""
   local detail=""
+
+  if [[ "${item}" == "sesh" ]]; then
+    inspect_sesh
+    return 0
+  fi
 
   if [[ -z "${command}" ]]; then
     version="$(installed_deb_version "${package}")"
@@ -430,6 +596,10 @@ inventory_expected_content() {
 
   for item in "${PREFERRED_ITEMS[@]}"; do
     inspect_preferred_item "${item}"
+  done
+
+  for item in "${TMUX_PLUGIN_NAMES[@]}"; do
+    inspect_tmux_plugin "${item}"
   done
 }
 
@@ -634,6 +804,211 @@ install_remote_items() {
   done
 }
 
+generate_sesh_completion() {
+  local completion_file="${SESH_COMPLETION_DIR}/_sesh"
+  local temporary_file=""
+
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    printf '+ mkdir -p %q\n' "${SESH_COMPLETION_DIR}" | tee -a "${LOG_FILE}"
+    printf '+ %q completion zsh > %q\n' "${SESH_BIN}" "${completion_file}" | tee -a "${LOG_FILE}"
+    return 0
+  fi
+
+  mkdir -p "${SESH_COMPLETION_DIR}" || return 1
+  temporary_file="$(mktemp "${SESH_COMPLETION_DIR}/.sesh-completion.XXXXXX")" || return 1
+  if "${SESH_BIN}" completion zsh >"${temporary_file}" && [[ -s "${temporary_file}" ]]; then
+    mv "${temporary_file}" "${completion_file}"
+    return 0
+  fi
+
+  rm -f "${temporary_file}"
+  return 1
+}
+
+install_sesh() {
+  local key="tool:sesh"
+  local state="${ITEM_STATE[${key}]}"
+  local temporary_directory=""
+  local archive=""
+  local extracted_binary=""
+  local actual_sha=""
+
+  [[ "${state}" == "needs-install" || "${state}" == "needs-completion" ]] || return 0
+
+  if [[ "${state}" == "needs-completion" ]]; then
+    if generate_sesh_completion; then
+      if [[ "${DRY_RUN}" -eq 1 ]]; then
+        set_result "${key}" "PLANNED" "would generate zsh completion for pinned sesh ${SESH_VERSION}"
+      else
+        ITEM_STATE["${key}"]="satisfied"
+        set_result "${key}" "INSTALLED" "generated zsh completion for pinned sesh ${SESH_VERSION}"
+      fi
+    else
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "could not generate zsh completion; binary was left untouched"
+    fi
+    return 0
+  fi
+
+  if [[ "${SKIP_REMOTE}" -eq 1 ]]; then
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "remote installation disabled; pinned sesh ${SESH_VERSION} was not downloaded"
+    return 0
+  fi
+
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    printf '+ curl -fL --retry 3 --output <temporary> %q\n' "${SESH_URL}" | tee -a "${LOG_FILE}"
+    printf '+ verify SHA256 %s and install %q\n' "${SESH_SHA256}" "${SESH_BIN}" | tee -a "${LOG_FILE}"
+    set_result "${key}" "PLANNED" "would install pinned sesh ${SESH_VERSION} with SHA256 verification and zsh completion"
+    return 0
+  fi
+
+  temporary_directory="$(mktemp -d)" || {
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "could not create a temporary download directory"
+    return 0
+  }
+  archive="${temporary_directory}/${SESH_ARCHIVE}"
+
+  if ! run curl -fL --retry 3 --output "${archive}" "${SESH_URL}"; then
+    rm -rf "${temporary_directory}"
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "release download failed; other installation work continued"
+    return 0
+  fi
+
+  actual_sha="$(sha256sum "${archive}" | awk '{print $1}')"
+  if [[ "${actual_sha}" != "${SESH_SHA256}" ]]; then
+    rm -rf "${temporary_directory}"
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "SHA256 mismatch (got ${actual_sha}); archive rejected"
+    return 0
+  fi
+
+  if ! run tar -xzf "${archive}" -C "${temporary_directory}"; then
+    rm -rf "${temporary_directory}"
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "verified release archive could not be extracted"
+    return 0
+  fi
+
+  extracted_binary="${temporary_directory}/sesh"
+  if [[ ! -f "${extracted_binary}" ]] || ! run mkdir -p "$(dirname "${SESH_BIN}")" || ! run install -m 0755 "${extracted_binary}" "${SESH_BIN}"; then
+    rm -rf "${temporary_directory}"
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "verified binary could not be installed to ${SESH_BIN}"
+    return 0
+  fi
+  rm -rf "${temporary_directory}"
+
+  if generate_sesh_completion; then
+    inspect_sesh
+    if [[ "${ITEM_STATE[${key}]}" == "satisfied" ]]; then
+      set_result "${key}" "INSTALLED" "pinned sesh ${SESH_VERSION}; SHA256 verified; zsh completion generated"
+    else
+      set_result "${key}" "FAILED" "installation completed but version/completion verification failed"
+    fi
+  else
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "sesh ${SESH_VERSION} installed, but zsh completion generation failed"
+  fi
+}
+
+install_tmux_plugin() {
+  local name="$1"
+  local key="plugin:${name}"
+  local state="${ITEM_STATE[${key}]}"
+  local directory="${TMUX_PLUGIN_DIR}/${name}"
+  local remote="${TMUX_PLUGIN_REPOS[${name}]}"
+  local commit="${TMUX_PLUGIN_COMMITS[${name}]}"
+  local staging=""
+  local checkout=""
+
+  [[ "${state}" == "needs-install" || "${state}" == "needs-checkout" ]] || return 0
+
+  if [[ "${state}" == "needs-install" && "${SKIP_REMOTE}" -eq 1 ]]; then
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "remote installation disabled; plugin remains missing"
+    return 0
+  fi
+
+  if [[ "${state}" == "needs-checkout" && "${SKIP_REMOTE}" -eq 1 ]] && ! git -C "${directory}" cat-file -e "${commit}^{commit}" 2>/dev/null; then
+    ITEM_STATE["${key}"]="failed"
+    set_result "${key}" "FAILED" "remote installation disabled and pinned commit is unavailable locally; checkout left unchanged"
+    return 0
+  fi
+
+  if [[ "${DRY_RUN}" -eq 1 ]]; then
+    if [[ "${state}" == "needs-install" ]]; then
+      printf '+ git clone %q %q && git checkout --detach %q\n' "${remote}" "${directory}" "${commit}" | tee -a "${LOG_FILE}"
+      set_result "${key}" "PLANNED" "would clone official origin at ${commit:0:12}"
+    else
+      printf '+ git -C %q checkout --detach %q\n' "${directory}" "${commit}" | tee -a "${LOG_FILE}"
+      set_result "${key}" "PLANNED" "would switch clean official checkout to ${commit:0:12}"
+    fi
+    return 0
+  fi
+
+  if [[ "${state}" == "needs-install" ]]; then
+    if ! run mkdir -p "${TMUX_PLUGIN_DIR}"; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "could not create ${TMUX_PLUGIN_DIR}"
+      return 0
+    fi
+    staging="$(mktemp -d "${TMUX_PLUGIN_DIR}/.${name}.XXXXXX")" || {
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "could not create a staging directory"
+      return 0
+    }
+    checkout="${staging}/checkout"
+
+    if ! run git clone --filter=blob:none --no-checkout "${remote}" "${checkout}" || ! run git -C "${checkout}" checkout --detach "${commit}"; then
+      rm -rf "${staging}"
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "clone or pinned checkout failed; destination was left unchanged"
+      return 0
+    fi
+
+    if ! mv "${checkout}" "${directory}"; then
+      rm -rf "${staging}"
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "could not move verified checkout into ${directory}"
+      return 0
+    fi
+    rmdir "${staging}" 2>/dev/null || true
+  else
+    if ! git -C "${directory}" cat-file -e "${commit}^{commit}" 2>/dev/null; then
+      if [[ "${SKIP_REMOTE}" -eq 1 ]] || ! run git -C "${directory}" fetch --quiet origin "${commit}"; then
+        ITEM_STATE["${key}"]="failed"
+        set_result "${key}" "FAILED" "pinned commit is unavailable locally and could not be fetched; checkout left unchanged"
+        return 0
+      fi
+    fi
+
+    if ! run git -C "${directory}" checkout --quiet --detach "${commit}"; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "could not switch clean checkout; manual action required"
+      return 0
+    fi
+  fi
+
+  inspect_tmux_plugin "${name}"
+  if [[ "${ITEM_STATE[${key}]}" == "satisfied" ]]; then
+    set_result "${key}" "INSTALLED" "official origin pinned at ${commit:0:12}"
+  else
+    set_result "${key}" "FAILED" "plugin operation completed but postcondition verification failed"
+  fi
+}
+
+install_tmux_plugins() {
+  log "Installing pinned tmux plugins"
+
+  local name
+  for name in "${TMUX_PLUGIN_NAMES[@]}"; do
+    install_tmux_plugin "${name}"
+  done
+}
+
 stow_command_for_package() {
   case "$1" in
     tmux)
@@ -792,6 +1167,8 @@ main() {
     install_preferred_apt_items
     install_preferred_snap_items
     install_remote_items
+    install_sesh
+    install_tmux_plugins
   fi
 
   if [[ "${DO_STOW}" -eq 1 ]]; then

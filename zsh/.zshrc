@@ -17,6 +17,10 @@ setopt HIST_IGNORE_SPACE
 setopt HIST_REDUCE_BLANKS
 
 # Completion
+# install.sh writes generated completions (including sesh) here. Add the
+# user-owned directory before compinit builds its function index.
+[[ -d "${XDG_DATA_HOME:-${HOME}/.local/share}/zsh/site-functions" ]] && \
+  fpath=("${XDG_DATA_HOME:-${HOME}/.local/share}/zsh/site-functions" $fpath)
 autoload -Uz compinit
 compinit
 
