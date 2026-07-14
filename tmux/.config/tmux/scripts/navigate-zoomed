@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+direction="${1:-}"
+pane="${TMUX_PANE:-}"
+socket="${TMUX%%,*}"
+
+case "$direction" in
+  L) edge_format='#{pane_at_left}' ;;
+  D) edge_format='#{pane_at_bottom}' ;;
+  U) edge_format='#{pane_at_top}' ;;
+  R) edge_format='#{pane_at_right}' ;;
+  *) exit 2 ;;
+esac
+
+[[ -n "$pane" && -n "$socket" ]] || exit 2
+tmux_cmd=(tmux -S "$socket")
+
+zoomed="$("${tmux_cmd[@]}" display-message -p -t "$pane" '#{window_zoomed_flag}')"
+if [[ "$zoomed" != 1 ]]; then
+  at_edge="$("${tmux_cmd[@]}" display-message -p -t "$pane" "$edge_format")"
+  [[ "$at_edge" == 1 ]] || "${tmux_cmd[@]}" select-pane "-$direction" -t "$pane"
+  exit 0
+fi
+
+restore_zoom=0
+restore_original_zoom() {
+  if [[ "$restore_zoom" == 1 ]]; then
+    "${tmux_cmd[@]}" resize-pane -Z -t "$pane" >/dev/null 2>&1 || true
+  fi
+}
+trap restore_original_zoom EXIT
+
+# pane_at_* reports every edge as true while a pane is zoomed. Briefly inspect
+# the underlying layout, restore zoom, then use -Z to keep the destination zoomed.
+"${tmux_cmd[@]}" resize-pane -Z -t "$pane"
+restore_zoom=1
+at_edge="$("${tmux_cmd[@]}" display-message -p -t "$pane" "$edge_format")"
+"${tmux_cmd[@]}" resize-pane -Z -t "$pane"
+restore_zoom=0
+
+[[ "$at_edge" == 1 ]] || "${tmux_cmd[@]}" select-pane "-$direction" -Z -t "$pane"

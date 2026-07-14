@@ -158,6 +158,10 @@ commit。普通模式下直接按 `Ctrl-h/j/k/l`：
 3. 到达最外侧 tmux 边缘时停住，不绕到另一侧。
 4. tmux window 已 zoom 时使用 `select-pane -Z`，导航不会取消 zoom。
 
+zoom 状态下 tmux 会把放大的 pane 误报为位于所有边缘。Neovim 映射仅在该状态调用
+`scripts/navigate-zoomed`，短暂检查底层布局后立即恢复 zoom，从而同时保持方向正确、
+边缘不循环和 zoom；普通状态仍由 vim-tmux-navigator 处理。
+
 `g:tmux_navigator_save_on_switch=0`，切换不会自动保存 buffer。`Ctrl-\` 在 Neovim
 和 tmux 两边均未映射到 navigator，继续作为终端 SIGQUIT；上一 pane 仍可使用 tmux
 自己的带 Prefix 命令。插件缺失时，带 Prefix 的 h/j/k/l 导航始终可用。
@@ -215,6 +219,7 @@ tmux list-keys | grep 'C-s\|C-r'
 ```sh
 bash -n install.sh
 bash -n tmux/.config/tmux/scripts/sesh-picker
+bash -n tmux/.config/tmux/scripts/navigate-zoomed
 ./install.sh --install-only --dry-run
 git diff --check
 ```
