@@ -94,7 +94,7 @@ continuum 为实现定时保存，会在运行时向 `status-right` 前置一个
 限流的保存检查。这是持久化机制，不是展示模块；不要用主题配置覆盖运行时的
 `status-right`，否则 continuum 无法触发。
 
-Pane 使用 heavy border。非活动边框是低对比 Kanagawa 背景色，活动边框为蓝色。
+Pane 使用 single 细线边框。非活动边框是低对比 Kanagawa 背景色，活动边框为蓝色。
 只有活动 pane 的上边框显示截断路径和当前命令，非活动 pane 不显示标题。
 
 ## 快捷键
@@ -199,7 +199,7 @@ tmux list-keys | grep 'C-s\|C-r'
 
 ## SSH、终端和故障处理
 
-- 最低 tmux 版本是 3.2；`display-popup`、RGB、heavy border 和当前格式均按此基线。
+- 最低 tmux 版本是 3.2；`display-popup`、RGB、single border 和当前格式均按此基线。
 - 终端应支持 `tmux-256color` 和真彩色。颜色异常时检查本地/远端 terminfo，并运行
   `tmux display-message -p '#{client_termname} #{client_termfeatures}'`。
 - 非官方 origin 或 dirty 插件目录不会被安装器修复。先在该目录内审查 `git status`
