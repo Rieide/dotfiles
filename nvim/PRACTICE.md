@@ -58,7 +58,23 @@ Trouble 比单次跳转更适合查看一组问题、引用、symbols。
 <leader>hp  预览当前 hunk
 <leader>hd  diff 当前文件
 <leader>hb  blame 当前行
+<leader>hB  切换右侧整文件 blame panel
 ```
+
+右侧 blame panel 与源码同步滚动，每行只显示新鲜度色条、缩写时间和
+作者前 5 个字符。时间数字使用两字符右对齐，`d.`、`m.`、`y.` 表示
+天、月、年。越新的代码色条越暖，一年以上的代码显示为灰色。
+
+```text
+<C-l>       从源码进入 blame panel
+<C-h>       从 blame panel 返回源码
+K           在 panel 中查看完整提交信息
+Esc         关闭提交信息或 panel
+```
+
+未提交的行显示为 `0 d. local`，左侧的 Gitsigns 仍负责区分新增、
+修改和删除。`<leader>hb` 适合查当前行，`<leader>hB` 适合阅读整个
+文件的历史分布。
 
 之后再练更有风险的操作：
 
