@@ -16,7 +16,9 @@ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="${XDG_STATE_HOME:-${HOME}/.local/state}/dotfiles"
 LOG_FILE="${LOG_DIR}/install-$(date +%Y%m%d-%H%M%S).log"
 
-export PATH="${HOME}/.local/bin:${PATH}"
+# User-managed tools stay first, followed by Snap launchers. Ubuntu's Zsh login
+# path does not consistently include /snap/bin, and Neovim is Snap-only here.
+export PATH="${HOME}/.local/bin:/snap/bin:${PATH}"
 
 DO_INSTALL=1
 DO_STOW=1
@@ -126,7 +128,7 @@ declare -A ITEM_COMMAND=(
 declare -A ITEM_MIN_VERSION=(
   [git]="2.35"
   [nvim]="0.11"
-  [tmux]="3.2"
+  [tmux]="3.3"
 )
 
 # Empty means any existing source is accepted. Installation still follows
@@ -152,7 +154,7 @@ SESH_URL="https://github.com/joshmedeski/sesh/releases/download/v${SESH_VERSION}
 SESH_BIN="${HOME}/.local/bin/sesh"
 SESH_COMPLETION_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/zsh/site-functions"
 
-TMUX_PLUGIN_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}/tmux/plugins"
+TMUX_PLUGIN_DIR="${HOME}/.config/tmux/plugins"
 TMUX_PLUGIN_NAMES=(
   tpm
   tmux-sensible
@@ -426,6 +428,12 @@ canonical_github_remote() {
   local path=""
 
   case "${remote}" in
+    https://git::@github.com/*)
+      # TPM historically expands owner/repository shorthands to this unusual
+      # but still official GitHub HTTPS form. Accept it without rewriting the
+      # user's configured remote.
+      path="${remote#https://git::@github.com/}"
+      ;;
     https://github.com/*)
       path="${remote#https://github.com/}"
       ;;
@@ -630,6 +638,7 @@ install_required_packages() {
 
     if run sudo apt-get install -y "${package}"; then
       if [[ "${DRY_RUN}" -eq 1 ]]; then
+        ITEM_STATE["${key}"]="planned"
         set_result "${key}" "PLANNED" "would install from apt"
         continue
       fi
@@ -684,6 +693,7 @@ install_preferred_apt_items() {
 
     if run sudo apt-get install -y "${package}"; then
       if [[ "${DRY_RUN}" -eq 1 ]]; then
+        ITEM_STATE["${key}"]="planned"
         set_result "${key}" "PLANNED" "would install ${package} ${candidate} from apt"
         continue
       fi
@@ -718,6 +728,7 @@ install_preferred_snap_items() {
 
     if run sudo snap install "${item}" --classic --channel=latest/stable; then
       if [[ "${DRY_RUN}" -eq 1 ]]; then
+        ITEM_STATE["${key}"]="planned"
         set_result "${key}" "PLANNED" "would install from Snap latest/stable"
         continue
       fi
@@ -776,6 +787,7 @@ install_remote_items() {
 
     if run_remote_installer "${item}"; then
       if [[ "${DRY_RUN}" -eq 1 ]]; then
+        ITEM_STATE["${key}"]="planned"
         set_result "${key}" "PLANNED" "would install from upstream source"
         continue
       fi
@@ -826,6 +838,7 @@ install_sesh() {
   if [[ "${state}" == "needs-completion" ]]; then
     if generate_sesh_completion; then
       if [[ "${DRY_RUN}" -eq 1 ]]; then
+        ITEM_STATE["${key}"]="planned"
         set_result "${key}" "PLANNED" "would generate zsh completion for pinned sesh ${SESH_VERSION}"
       else
         ITEM_STATE["${key}"]="satisfied"
@@ -847,6 +860,7 @@ install_sesh() {
   if [[ "${DRY_RUN}" -eq 1 ]]; then
     printf '+ curl -fL --retry 3 --output <temporary> %q\n' "${SESH_URL}" | tee -a "${LOG_FILE}"
     printf '+ verify SHA256 %s and install %q\n' "${SESH_SHA256}" "${SESH_BIN}" | tee -a "${LOG_FILE}"
+    ITEM_STATE["${key}"]="planned"
     set_result "${key}" "PLANNED" "would install pinned sesh ${SESH_VERSION} with SHA256 verification and zsh completion"
     return 0
   fi
@@ -929,9 +943,11 @@ install_tmux_plugin() {
   if [[ "${DRY_RUN}" -eq 1 ]]; then
     if [[ "${state}" == "needs-install" ]]; then
       printf '+ git clone %q %q && git checkout --detach %q\n' "${remote}" "${directory}" "${commit}" | tee -a "${LOG_FILE}"
+      ITEM_STATE["${key}"]="planned"
       set_result "${key}" "PLANNED" "would clone official origin at ${commit:0:12}"
     else
       printf '+ git -C %q checkout --detach %q\n' "${directory}" "${commit}" | tee -a "${LOG_FILE}"
+      ITEM_STATE["${key}"]="planned"
       set_result "${key}" "PLANNED" "would switch clean official checkout to ${commit:0:12}"
     fi
     return 0
@@ -1011,6 +1027,20 @@ stow_command_for_package() {
   esac
 }
 
+stow_state_key_for_package() {
+  case "$1" in
+    zsh)
+      printf '%s\n' "required:zsh"
+      ;;
+    git|lazygit|nvim|starship|tmux)
+      printf 'tool:%s\n' "$1"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 stow_package_is_already_satisfied() {
   local package="$1"
 
@@ -1040,18 +1070,31 @@ stow_dotfiles() {
   local package
   local command
   local key
+  local state_key
+  local state
   for package in "${STOW_PACKAGES[@]}"; do
     key="stow:${package}"
     add_summary_item "${key}" "${package}" "stow"
     command="$(stow_command_for_package "${package}")"
+    state_key="$(stow_state_key_for_package "${package}")"
+    state="${ITEM_STATE[${state_key}]:-unknown}"
 
-    if ! command -v stow >/dev/null 2>&1; then
-      set_result "${key}" "FAILED" "stow command is missing"
+    if [[ "${state}" != "satisfied" && !( "${DRY_RUN}" -eq 1 && "${state}" == "planned" ) ]]; then
+      set_result "${key}" "FAILED" "tool policy is not satisfied: ${SUMMARY_DETAIL[${state_key}]:-state ${state}}"
       continue
     fi
 
-    if ! command -v "${command}" >/dev/null 2>&1; then
-      set_result "${key}" "FAILED" "required command ${command} is missing"
+    if ! command -v stow >/dev/null 2>&1; then
+      if [[ "${DRY_RUN}" -eq 1 && "${ITEM_STATE[required:stow]:-unknown}" == "planned" ]]; then
+        set_result "${key}" "PLANNED" "would apply after installing Stow; conflict simulation is unavailable"
+      else
+        set_result "${key}" "FAILED" "stow command is missing"
+      fi
+      continue
+    fi
+
+    if [[ "${state}" == "satisfied" ]] && ! command -v "${command}" >/dev/null 2>&1; then
+      set_result "${key}" "FAILED" "tool policy passed but required command ${command} is missing"
       continue
     fi
 

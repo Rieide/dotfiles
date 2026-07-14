@@ -2,8 +2,9 @@
 set -euo pipefail
 
 direction="${1:-}"
-pane="${TMUX_PANE:-}"
-socket="${TMUX%%,*}"
+pane="${2-${TMUX_PANE:-}}"
+tmux_environment="${TMUX:-}"
+socket="${tmux_environment%%,*}"
 
 case "$direction" in
   L) edge_format='#{pane_at_left}' ;;

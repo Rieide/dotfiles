@@ -318,7 +318,8 @@ bat direnv fd-find fzf git git-delta gitleaks lazygit ripgrep tmux zsh-autosugge
 Some tools are intentionally installed outside the default Ubuntu archive:
 
 - `nvim` uses Snap `latest/stable` with classic confinement and must be at least
-  version 0.11; the script will not install an apt replacement.
+  version 0.11; the script will not install an apt replacement. The installer
+  and tracked Zsh configuration put `/snap/bin` ahead of system apt binaries.
 - `starship` uses the official install script.
 - `zoxide` uses the upstream install script.
 - `eza` uses the official eza Debian/Ubuntu repository.
@@ -332,8 +333,9 @@ are reported without being overwritten. See `tmux/README.md` for the complete
 tmux installation and maintenance workflow.
 
 The tracked configuration also requires Git 2.35 or newer for `zdiff3` and tmux
-3.2 or newer for popup support. An existing tool from another source is preserved
-unless that tool has an explicit provider restriction, as Neovim does.
+3.3 or newer for popup titles and styling. An existing tool from another source
+is preserved unless that tool has an explicit provider restriction, as Neovim
+does.
 
 Package names and command names are not always identical on Ubuntu. The script
 verifies `fd-find` as `fdfind`, `bat` as `batcat`, and `git-delta` as `delta`.
