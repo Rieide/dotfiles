@@ -115,8 +115,6 @@ Work through these before adding another large group of editor plugins.
 - [ ] Install and verify `xclip` for the current tmux clipboard bindings.
 - [ ] Add `wl-clipboard` support and select `wl-copy` on Wayland while retaining
       `xclip` as the X11 fallback.
-- [ ] Add `jq` to the base CLI set for JSON-heavy shell and GitHub workflows.
-
 ### Bootstrap validation
 
 - [ ] Add a repository check command or script covering at least:
