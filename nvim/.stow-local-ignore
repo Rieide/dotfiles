@@ -1,2 +1,4 @@
 ^/README\.md$
 ^/PRACTICE\.md$
+^/PERF_VISUALIZATION_PLAN\.md$
+^/tests(?:/|$)

@@ -25,6 +25,11 @@ Current migration state:
 
 Practice notes for daily Neovim use live in `PRACTICE.md`.
 
+A proposed profiler workflow covering source heat annotations, a compact
+hotspot sidebar, and a Snacks-hosted flamegraph panel is documented in
+[`PERF_VISUALIZATION_PLAN.md`](PERF_VISUALIZATION_PLAN.md). It is a plan, not
+part of the current baseline.
+
 Useful validation commands:
 
 ```sh
