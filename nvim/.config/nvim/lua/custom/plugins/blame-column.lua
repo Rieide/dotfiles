@@ -50,14 +50,11 @@ local function set_heat_highlights()
   end
 end
 
-local function blame_column_is_open()
-  local ok, blame_window = pcall(require, 'blame-column.blame_window')
-  local winid = ok and blame_window.state.blame_winid or nil
-  return winid and vim.api.nvim_win_is_valid(winid)
-end
+local function blame_target_status(bufnr, opts)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return false, 'Blame is only available for tracked files'
+  end
 
-local function blame_target_status(opts)
-  local bufnr = vim.api.nvim_get_current_buf()
   local path = vim.api.nvim_buf_get_name(bufnr)
   if path == '' or vim.bo[bufnr].buftype ~= '' then
     return false, 'Blame is only available for tracked files'
@@ -88,19 +85,7 @@ local function blame_target_status(opts)
 end
 
 local function toggle_blame_column()
-  if blame_column_is_open() then
-    vim.cmd.BlameColumnToggle()
-    return
-  end
-
-  local opts = require('blame-column.config').opts
-  local available, message = blame_target_status(opts)
-  if not available then
-    vim.notify(message, vim.log.levels.INFO)
-    return
-  end
-
-  vim.cmd.BlameColumnToggle()
+  require('custom.blame_column_controller').toggle()
 end
 
 ---@module 'lazy'
@@ -131,37 +116,15 @@ return {
     -- The plugin checks the process cwd by default. Check the source buffer
     -- instead so files opened from another repository behave correctly.
     require('blame-column.utils').is_blame_availible = function(current_opts)
-      return blame_target_status(current_opts)
+      return blame_target_status(vim.api.nvim_get_current_buf(), current_opts)
     end
+    require('custom.blame_column_controller').setup { target_status = blame_target_status }
     set_heat_highlights()
 
     local group = vim.api.nvim_create_augroup('custom-blame-column', { clear = true })
     vim.api.nvim_create_autocmd('ColorScheme', {
       group = group,
       callback = set_heat_highlights,
-    })
-    vim.api.nvim_create_autocmd('BufWinEnter', {
-      group = group,
-      pattern = 'blame',
-      callback = function(args)
-        if vim.bo[args.buf].filetype ~= 'blame' then return end
-        for _, winid in ipairs(vim.fn.win_findbuf(args.buf)) do
-          vim.wo[winid].winfixwidth = true
-        end
-
-        -- Close through the plugin API so scrollbind and cursorbind are reset.
-        vim.schedule(function()
-          if not vim.api.nvim_buf_is_valid(args.buf) then return end
-          vim.keymap.set('n', '<Esc>', function()
-            local commit_info = require 'blame-column.commit_info_window'
-            if commit_info.is_open() then
-              commit_info.close(false)
-              return
-            end
-            require('blame-column.blame_window').close()
-          end, { buffer = args.buf, silent = true, desc = 'Close blame detail or panel' })
-        end)
-      end,
     })
   end,
 }
