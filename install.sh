@@ -25,6 +25,7 @@ DO_STOW=1
 DRY_RUN=0
 SKIP_REMOTE=0
 APT_METADATA_READY=0
+SUMMARY_EXIT_CODE=0
 
 TARGET_OS="Ubuntu 26.04"
 
@@ -205,6 +206,8 @@ Behavior:
   - Skips already-satisfied packages and tools.
   - Does not add compatibility fallbacks for non-target systems.
   - Continues independent work after a failure and prints a final summary.
+  - Exits 0 when no postcondition failed, 2 after a completed summary with
+    failures, and 1 for invalid input or an unexpected fatal error.
   - Leaves secrets and ~/.zshrc.local manual.
 EOF
 }
@@ -311,7 +314,10 @@ installed_deb_version() {
 
 candidate_deb_version() {
   local package="$1"
-  apt-cache policy "${package}" 2>/dev/null | sed -n 's/^[[:space:]]*Candidate:[[:space:]]*//p' | head -n 1
+  local policy=""
+
+  policy="$(LC_ALL=C apt-cache policy "${package}" 2>/dev/null || true)"
+  sed -n 's/^[[:space:]]*Candidate:[[:space:]]*//p' <<<"${policy}"
 }
 
 detect_command_source() {
@@ -545,8 +551,13 @@ inspect_preferred_item() {
     detail="${path} (${source}${version:+, ${version}})"
 
     if ! source_is_allowed "${source}" "${allowed_sources}"; then
-      ITEM_STATE["tool:${item}"]="failed"
-      set_result "tool:${item}" "FAILED" "${detail}; allowed source: ${allowed_sources}; manual action required"
+      if [[ "${kind}" == "snap" && "${source}" == "apt" ]]; then
+        ITEM_STATE["tool:${item}"]="needs-install"
+        set_result "tool:${item}" "PENDING" "${detail}; apt provider is deprecated; Snap installation required"
+      else
+        ITEM_STATE["tool:${item}"]="failed"
+        set_result "tool:${item}" "FAILED" "${detail}; allowed source: ${allowed_sources}; manual action required"
+      fi
       return 0
     fi
 
@@ -557,13 +568,20 @@ inspect_preferred_item() {
     fi
 
     if [[ -n "${minimum}" ]] && ! version_satisfies "${version}" "${minimum}"; then
-      if [[ "${kind}" == "apt" ]]; then
-        ITEM_STATE["tool:${item}"]="needs-install"
-        set_result "tool:${item}" "PENDING" "${detail}; minimum ${minimum}; apt upgrade required"
-      else
-        ITEM_STATE["tool:${item}"]="failed"
-        set_result "tool:${item}" "FAILED" "${detail}; minimum ${minimum}; manual upgrade required"
-      fi
+      case "${kind}" in
+        apt)
+          ITEM_STATE["tool:${item}"]="needs-install"
+          set_result "tool:${item}" "PENDING" "${detail}; minimum ${minimum}; apt upgrade required"
+          ;;
+        snap)
+          ITEM_STATE["tool:${item}"]="needs-refresh"
+          set_result "tool:${item}" "PENDING" "${detail}; minimum ${minimum}; Snap refresh required"
+          ;;
+        *)
+          ITEM_STATE["tool:${item}"]="failed"
+          set_result "tool:${item}" "FAILED" "${detail}; minimum ${minimum}; manual upgrade required"
+          ;;
+      esac
       return 0
     fi
 
@@ -715,10 +733,13 @@ install_preferred_snap_items() {
 
   local item
   local key
+  local state
+  local action
   for item in "${PREFERRED_ITEMS[@]}"; do
     [[ "${ITEM_KIND[${item}]}" == "snap" ]] || continue
     key="tool:${item}"
-    [[ "${ITEM_STATE[${key}]}" == "needs-install" ]] || continue
+    state="${ITEM_STATE[${key}]}"
+    [[ "${state}" == "needs-install" || "${state}" == "needs-refresh" ]] || continue
 
     if ! command -v snap >/dev/null 2>&1; then
       ITEM_STATE["${key}"]="failed"
@@ -726,21 +747,28 @@ install_preferred_snap_items() {
       continue
     fi
 
-    if run sudo snap install "${item}" --classic --channel=latest/stable; then
+    if [[ "${state}" == "needs-refresh" ]]; then
+      action="refresh"
+    else
+      action="install"
+    fi
+
+    if run sudo snap "${action}" "${item}" --classic --channel=latest/stable; then
       if [[ "${DRY_RUN}" -eq 1 ]]; then
         ITEM_STATE["${key}"]="planned"
-        set_result "${key}" "PLANNED" "would install from Snap latest/stable"
+        set_result "${key}" "PLANNED" "would ${action} from Snap latest/stable"
         continue
       fi
       inspect_preferred_item "${item}"
       if [[ "${ITEM_STATE[${key}]}" == "satisfied" ]]; then
-        SUMMARY_STATUS["${key}"]="INSTALLED"
+        set_result "${key}" "INSTALLED" "Snap ${action} completed; ${SUMMARY_DETAIL[${key}]}"
       else
-        set_result "${key}" "FAILED" "Snap installation completed but version/source verification failed"
+        ITEM_STATE["${key}"]="failed"
+        set_result "${key}" "FAILED" "Snap ${action} completed but version/source verification failed"
       fi
     else
       ITEM_STATE["${key}"]="failed"
-      set_result "${key}" "FAILED" "Snap installation command failed"
+      set_result "${key}" "FAILED" "Snap ${action} command failed"
     fi
   done
 }
@@ -1079,7 +1107,7 @@ stow_dotfiles() {
     state_key="$(stow_state_key_for_package "${package}")"
     state="${ITEM_STATE[${state_key}]:-unknown}"
 
-    if [[ "${state}" != "satisfied" && !( "${DRY_RUN}" -eq 1 && "${state}" == "planned" ) ]]; then
+    if [[ "${state}" != "satisfied" && ! ( "${DRY_RUN}" -eq 1 && "${state}" == "planned" ) ]]; then
       set_result "${key}" "FAILED" "tool policy is not satisfied: ${SUMMARY_DETAIL[${state_key}]:-state ${state}}"
       continue
     fi
@@ -1142,8 +1170,10 @@ print_summary() {
 
   if [[ "${failed}" -eq 0 ]]; then
     log "Bootstrap completed without failed postconditions"
+    SUMMARY_EXIT_CODE=0
   else
     warn "Bootstrap completed with ${failed} failed postcondition(s). Review: ${LOG_FILE}"
+    SUMMARY_EXIT_CODE=2
   fi
 }
 
@@ -1207,6 +1237,11 @@ main() {
   fi
 
   print_summary
+
+  # A completed best-effort run uses exit 2 when postconditions remain failed.
+  # Disable the unexpected-error trap before returning that intentional status.
+  trap - ERR
+  return "${SUMMARY_EXIT_CODE}"
 }
 
 main "$@"

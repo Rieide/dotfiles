@@ -30,9 +30,9 @@ setopt INTERACTIVE_COMMENTS
 setopt NO_BEEP
 
 # PATH entries that are safe to share across machines.
-[[ -d "/snap/bin" ]] && path=("/snap/bin" $path)
+path=("/snap/bin" $path)
 [[ -d "${HOME}/bin" ]] && path=("${HOME}/bin" $path)
-[[ -d "${HOME}/.local/bin" ]] && path=("${HOME}/.local/bin" $path)
+path=("${HOME}/.local/bin" $path)
 typeset -U path
 
 # Colors and common aliases

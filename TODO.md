@@ -27,11 +27,14 @@ proxies, tokens, and experiments belong in local files such as
       packages.
 - [x] Provide a best-effort Ubuntu 26.04 bootstrap with install-only,
       stow-only, skip-remote, and dry-run modes.
-- [x] Log installation failures, continue independent work, verify expected
-      commands, and summarize failures at the end.
+- [x] Log installation failures, continue independent work, print the final
+      summary, return 2 when it contains `FAILED`, and reserve 1 for fatal
+      bootstrap errors.
 - [x] Inventory installed versions and providers before mutation, skip satisfied
       tools, enforce configuration-driven minimums, and summarize per-tool
       postconditions in a table.
+- [x] Treat Neovim as Snap-only: install Snap for apt-only machines, refresh a
+      below-minimum Snap, leave the apt package untouched, and prefer `/snap/bin`.
 - [x] Keep secrets and machine-local overrides out of Git via `*local*`
       ignore rules.
 - [x] Keep package requirements in the auditable arrays in `install.sh` rather
@@ -44,6 +47,8 @@ proxies, tokens, and experiments belong in local files such as
       override loaded from `~/.zshrc.local`.
 - [x] Integrate fzf, zoxide, direnv, Starship, and zsh-autosuggestions
       defensively so missing optional commands do not break shell startup.
+- [x] Register `~/.local/bin` and `/snap/bin` without requiring those directories
+      to exist when the shared shell configuration is loaded.
 - [x] Add Ubuntu command-name compatibility for `batcat` and `fdfind`, plus
       eza-based `ls`, `ll`, `la`, and `tree` aliases when eza is available.
 - [x] Keep zsh framework-free and avoid a shell plugin manager.
@@ -60,6 +65,9 @@ proxies, tokens, and experiments belong in local files such as
 - [x] Use a sesh/fzf popup for tmux and zoxide sessions, add seamless
       Neovim/tmux navigation, keep safe layout-only persistence, and retain the
       Lazygit popup and current xclip bindings.
+- [x] Keep the repository-managed tmux config and pinned plugins under
+      `~/.config/tmux` working with a custom `XDG_CONFIG_HOME`, and make the
+      picker repair its managed PATH for an already-running tmux server.
 
 ### Git
 
@@ -122,6 +130,7 @@ Work through these before adding another large group of editor plugins.
 - [ ] Install and verify `xclip` for the current tmux clipboard bindings.
 - [ ] Add `wl-clipboard` support and select `wl-copy` on Wayland while retaining
       `xclip` as the X11 fallback.
+
 ### Bootstrap validation
 
 - [ ] Add a repository check command or script covering at least:

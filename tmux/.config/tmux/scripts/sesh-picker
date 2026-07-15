@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -u
 
+# A tmux server keeps the PATH it had when it started. Include locations used
+# by install.sh so a newly installed sesh or zoxide works without a restart.
+export PATH="${HOME}/.local/bin:/snap/bin${PATH:+:${PATH}}"
+
 pause_with_error() {
   printf '\n%s\n\nPress Enter to close this popup.' "$1" >&2
   read -r _

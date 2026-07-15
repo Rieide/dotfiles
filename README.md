@@ -94,13 +94,19 @@ operations before the first real run:
 ```
 
 Every run first inventories expected package versions, executable paths, and
-providers. Already-satisfied entries are skipped. A real run installs only the
-missing eligible entries, then applies each Stow package independently. It may
-request sudo authentication. Logs are written to:
+providers. Already-satisfied entries are skipped. A real run installs or
+upgrades eligible entries whose version/provider policy is not satisfied, then
+applies each Stow package independently. It may request sudo authentication.
+Logs are written to:
 
 ```text
 ~/.local/state/dotfiles/install-YYYYMMDD-HHMMSS.log
 ```
+
+Exit status `0` means the final table contains no `FAILED` rows. Status `2`
+means all independent steps and the final summary completed, but at least one
+postcondition is still `FAILED`. Status `1` is reserved for invalid arguments,
+logging/setup failures, or an unexpected fatal error.
 
 Useful scoped modes are:
 
@@ -288,10 +294,11 @@ This keeps common improvements flowing through one main history.
 
 - inventory every expected package/tool before installation
 - skip existing tools that satisfy version and provider policy
-- install eligible missing tools using the Ubuntu 26.04 target assumptions
+- install or upgrade eligible tools that do not satisfy policy
 - run Stow independently for selected packages
 - log what happened
 - print `SKIPPED`, `INSTALLED`, `PLANNED`, and `FAILED` results in a final table
+- return status 2 after the final table when any postcondition is `FAILED`
 - leave local/private configuration manual
 
 It is not intended to be a compatibility layer for every Linux release. When a
@@ -317,20 +324,26 @@ bat direnv fd-find fzf git git-delta gitleaks lazygit ripgrep tmux zsh-autosugge
 
 Some tools are intentionally installed outside the default Ubuntu archive:
 
-- `nvim` uses Snap `latest/stable` with classic confinement and must be at least
-  version 0.11; the script will not install an apt replacement. The installer
-  and tracked Zsh configuration put `/snap/bin` ahead of system apt binaries.
+- `nvim` is Snap-only, uses `latest/stable` with classic confinement, and must
+  be at least version 0.11. An apt-only machine gets the Snap installed, while
+  an existing below-minimum Snap is refreshed. The apt package is left intact;
+  the installer and tracked Zsh configuration put `/snap/bin` ahead of system
+  apt binaries.
 - `starship` uses the official install script.
 - `zoxide` uses the upstream install script.
 - `eza` uses the official eza Debian/Ubuntu repository.
 - `sesh` uses a pinned official Linux x86_64 release archive, verifies its
   SHA256, installs the binary under `~/.local/bin`, and generates Zsh completion.
+  The shell and picker add that managed path themselves, so an older tmux server
+  can use a newly installed sesh without restarting.
 
 The tmux plugins TPM, tmux-sensible, tmux-resurrect, tmux-continuum, and
 vim-tmux-navigator are cloned from their official repositories and checked out
 at commits pinned in `install.sh`. Dirty or unexpected-source plugin directories
-are reported without being overwritten. See `tmux/README.md` for the complete
-tmux installation and maintenance workflow.
+are reported without being overwritten. TPM receives a process-local
+`XDG_CONFIG_HOME=~/.config` so it always reads the repository-managed tmux
+configuration without changing the session's global XDG environment. See
+`tmux/README.md` for the complete tmux installation and maintenance workflow.
 
 The tracked configuration also requires Git 2.35 or newer for `zdiff3` and tmux
 3.3 or newer for popup titles and styling. An existing tool from another source
