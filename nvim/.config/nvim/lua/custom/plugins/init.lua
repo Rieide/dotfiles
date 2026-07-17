@@ -15,6 +15,7 @@ return {
   require 'custom.plugins.lint',
   require 'custom.plugins.lualine',
   require 'custom.plugins.noice',
+  require 'custom.plugins.perfanno',
   require 'custom.plugins.persistence',
   require 'custom.plugins.rose-pine',
   require 'custom.plugins.snacks',
