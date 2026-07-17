@@ -26,8 +26,21 @@ end
 
 local parse_blame_output = function_upvalue(git.async_get_git_blame, 'parse_blame_output')
 
+local binding_window_options = {
+  'scrollbind',
+  'cursorbind',
+}
+
+local source_window_options = {
+  'wrap',
+  'foldenable',
+  'scrollbind',
+  'cursorbind',
+}
+
 local panel_window_options = {
   'wrap',
+  'foldenable',
   'number',
   'relativenumber',
   'cursorline',
@@ -36,6 +49,7 @@ local panel_window_options = {
   'winfixwidth',
   'scrollbind',
   'cursorbind',
+  'scrolloff',
   'winbar',
 }
 
@@ -81,10 +95,15 @@ local function set_window_option(winid, name, value)
   api.nvim_set_option_value(name, value, { win = winid })
 end
 
-local function capture_window_options(winid)
+local function get_restorable_window_option(winid, name)
+  if name == 'scrolloff' then return api.nvim_get_option_value(name, { win = winid, scope = 'local' }) end
+  return get_window_option(winid, name)
+end
+
+local function capture_window_options(winid, names)
   local values = {}
-  for _, name in ipairs(panel_window_options) do
-    values[name] = get_window_option(winid, name)
+  for _, name in ipairs(names or panel_window_options) do
+    values[name] = get_restorable_window_option(winid, name)
   end
   return values
 end
@@ -100,7 +119,7 @@ local function restore_controller_changes(winid, original, managed, names)
   if not win_valid(winid) or not original or not managed then return end
   for _, name in ipairs(names or panel_window_options) do
     if original[name] ~= managed[name] then
-      local ok, current = pcall(get_window_option, winid, name)
+      local ok, current = pcall(get_restorable_window_option, winid, name)
       if ok and current == managed[name] then pcall(set_window_option, winid, name, original[name]) end
     end
   end
@@ -234,11 +253,13 @@ local function normalize_inherited_windows(session)
           if api.nvim_win_get_config(winid).relative == '' then
             restore_controller_changes(winid, session.panel_restore, session.panel_managed)
           else
-            restore_controller_changes(winid, session.panel_restore, session.panel_managed, { 'scrollbind', 'cursorbind' })
+            restore_controller_changes(winid, session.panel_restore, session.panel_managed, binding_window_options)
           end
         end
         if parent_kind == 'source' then
-          restore_controller_changes(winid, session.source_restore, session.source_managed, { 'scrollbind', 'cursorbind' })
+          local names = source_window_options
+          if api.nvim_win_get_config(winid).relative ~= '' then names = binding_window_options end
+          restore_controller_changes(winid, session.source_restore, session.source_managed, names)
         end
       end
     end
@@ -360,6 +381,8 @@ local function dispose_panel(session, disposition)
   wipe_buffer(bufnr)
 end
 
+local restore_source_window_options
+
 local function begin_close(session)
   if M.state.session ~= session or session.status == 'closing' then return false end
 
@@ -392,14 +415,7 @@ local function finish_close(session, disposition)
   close_detail(session)
   normalize_inherited_windows(session)
 
-  if win_valid(session.source_winid) and session.bindings_applied then
-    restore_controller_changes(
-      session.source_winid,
-      session.source_restore,
-      session.source_managed,
-      { 'scrollbind', 'cursorbind' }
-    )
-  end
+  if session.bindings_applied then restore_source_window_options(session, false) end
 
   dispose_panel(session, disposition)
 end
@@ -409,9 +425,110 @@ local function close_session(session, disposition)
 end
 
 local function fail_session(session, message)
-  if M.state.session ~= session then return end
+  if M.state.session ~= session or session.status == 'closing' then return end
   close_session(session, 'error')
   notify(message)
+end
+
+restore_source_window_options = function(session, unconditional)
+  if not win_valid(session.source_winid) or not session.source_restore or not session.source_managed then return end
+  if session.source_options_bufnr
+    and api.nvim_win_get_buf(session.source_winid) ~= session.source_options_bufnr
+  then
+    return
+  end
+
+  if unconditional then
+    restore_window_options(session.source_winid, session.source_restore)
+  else
+    restore_controller_changes(
+      session.source_winid,
+      session.source_restore,
+      session.source_managed,
+      source_window_options
+    )
+  end
+  session.source_options_bufnr = nil
+  session.source_options_suspended = nil
+  session.suspended_source_view = nil
+end
+
+local function apply_source_window_options(session)
+  local winid = session.source_winid
+  local bufnr = api.nvim_win_get_buf(winid)
+  local original = capture_window_options(winid, source_window_options)
+  local managed = vim.tbl_extend('force', vim.deepcopy(original), {
+    wrap = false,
+    foldenable = false,
+    scrollbind = true,
+    cursorbind = false,
+  })
+
+  session.source_restore = original
+  session.source_managed = managed
+  session.source_options_bufnr = bufnr
+  session.source_options_suspended = nil
+  session.suspended_source_view = nil
+
+  local ok, err = xpcall(function()
+    for _, name in ipairs(source_window_options) do
+      set_window_option(winid, name, managed[name])
+    end
+  end, debug.traceback)
+  if not ok then
+    restore_source_window_options(session, true)
+    error(err)
+  end
+end
+
+local function suspend_source_window_options(session, bufnr)
+  if not session.bindings_applied
+    or session.source_options_suspended
+    or session.source_options_bufnr ~= bufnr
+    or not win_valid(session.source_winid)
+    or api.nvim_get_current_win() ~= session.source_winid
+  then
+    return false
+  end
+
+  session.suspended_source_view = api.nvim_win_call(session.source_winid, function() return vim.fn.winsaveview() end)
+  restore_controller_changes(
+    session.source_winid,
+    session.source_restore,
+    session.source_managed,
+    source_window_options
+  )
+  session.source_options_suspended = true
+  return true
+end
+
+local function resume_source_window_options(session)
+  if not session.source_options_suspended
+    or not win_valid(session.source_winid)
+    or api.nvim_win_get_buf(session.source_winid) ~= session.source_options_bufnr
+  then
+    return false
+  end
+
+  for _, name in ipairs(source_window_options) do
+    set_window_option(session.source_winid, name, session.source_managed[name])
+  end
+
+  local saved_view = session.suspended_source_view
+  session.source_options_suspended = nil
+  session.suspended_source_view = nil
+  if saved_view then
+    local panel_valid = win_valid(session.panel_winid)
+    local ok, err = xpcall(function()
+      set_window_option(session.source_winid, 'scrollbind', false)
+      if panel_valid then set_window_option(session.panel_winid, 'scrollbind', false) end
+      api.nvim_win_call(session.source_winid, function() vim.fn.winrestview(saved_view) end)
+    end, debug.traceback)
+    pcall(set_window_option, session.source_winid, 'scrollbind', true)
+    if panel_valid then pcall(set_window_option, session.panel_winid, 'scrollbind', true) end
+    if not ok then error(err) end
+  end
+  return true
 end
 
 local function set_buffer_lines(bufnr, lines)
@@ -460,6 +577,113 @@ local function render_buffer(bufnr, file_info)
   end
 end
 
+local function managed_sync_window(session, winid)
+  return winid == session.source_winid or winid == session.panel_winid
+end
+
+local function window_view(winid)
+  return api.nvim_win_call(winid, function() return vim.fn.winsaveview() end)
+end
+
+local function clamped_column(bufnr, row, column)
+  local line = api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1] or ''
+  return math.min(math.max(column, 0), #line)
+end
+
+local function align_bound_view(session, active_winid, other_winid, active_view)
+  set_window_option(session.source_winid, 'scrollbind', false)
+  set_window_option(session.panel_winid, 'scrollbind', false)
+
+  local ok, err = xpcall(function()
+    api.nvim_win_call(other_winid, function()
+      local view = vim.fn.winsaveview()
+      view.topline = active_view.topline
+      view.topfill = active_view.topfill
+      vim.fn.winrestview(view)
+    end)
+  end, debug.traceback)
+
+  pcall(set_window_option, session.source_winid, 'scrollbind', true)
+  pcall(set_window_option, session.panel_winid, 'scrollbind', true)
+  if not ok then error(err) end
+
+  api.nvim_win_call(active_winid, function() vim.cmd 'syncbind' end)
+end
+
+local function synchronize_windows(session, active_winid, force_view)
+  if session.syncing
+    or not session.bindings_applied
+    or not session_live(session)
+    or not managed_sync_window(session, active_winid)
+    or not win_valid(session.source_winid)
+    or not win_valid(session.panel_winid)
+    or not buf_valid(session.panel_bufnr)
+    or api.nvim_win_get_buf(session.panel_winid) ~= session.panel_bufnr
+    or api.nvim_win_get_tabpage(session.source_winid) ~= api.nvim_win_get_tabpage(session.panel_winid)
+  then
+    return false
+  end
+
+  local source_line_count = api.nvim_buf_line_count(api.nvim_win_get_buf(session.source_winid))
+  local panel_line_count = api.nvim_buf_line_count(session.panel_bufnr)
+  if source_line_count ~= panel_line_count then active_winid = session.source_winid end
+
+  local other_winid = active_winid == session.source_winid and session.panel_winid or session.source_winid
+  session.syncing = true
+  local ok, err = xpcall(function()
+    local active_cursor = api.nvim_win_get_cursor(active_winid)
+    local other_bufnr = api.nvim_win_get_buf(other_winid)
+    local row = math.min(active_cursor[1], api.nvim_buf_line_count(other_bufnr))
+    local other_cursor = api.nvim_win_get_cursor(other_winid)
+    local column = other_winid == session.panel_winid and 0 or clamped_column(other_bufnr, row, other_cursor[2])
+
+    if other_cursor[1] ~= row or other_cursor[2] ~= column then
+      api.nvim_win_set_cursor(other_winid, { row, column })
+    end
+
+    local active_view = window_view(active_winid)
+    local other_view = window_view(other_winid)
+    if force_view or active_view.topline ~= other_view.topline or active_view.topfill ~= other_view.topfill then
+      align_bound_view(session, active_winid, other_winid, active_view)
+    end
+  end, debug.traceback)
+  session.syncing = false
+
+  if not ok and session_live(session) then
+    local message = 'Unable to synchronize blame windows: ' .. tostring(err)
+    begin_close(session)
+    restore_source_window_options(session, true)
+    vim.schedule(function()
+      if M.state.session ~= session then return end
+      finish_close(session, 'error')
+      notify(message)
+    end)
+    return false
+  end
+  return ok
+end
+
+local function vertical_window_change(winid)
+  local event = vim.v.event or {}
+  local change = event[tostring(winid)] or event[winid]
+  return type(change) == 'table' and (change.topline ~= 0 or change.topfill ~= 0)
+end
+
+local function scrolled_managed_window(session, match)
+  local source_changed = vertical_window_change(session.source_winid)
+  local panel_changed = vertical_window_change(session.panel_winid)
+  if not source_changed and not panel_changed then return nil end
+
+  if source_changed ~= panel_changed then return source_changed and session.source_winid or session.panel_winid end
+
+  local matched = tonumber(match)
+  if managed_sync_window(session, matched) then return matched end
+
+  local current = api.nvim_get_current_win()
+  if managed_sync_window(session, current) then return current end
+  return session.source_winid
+end
+
 local reconcile
 local split_parent_winid
 
@@ -470,8 +694,7 @@ local function panel_is_beside_source(session)
   local source_top, source_left = source_position[1], source_position[2]
   local panel_bottom = panel_top + api.nvim_win_get_height(session.panel_winid) - 1
   local source_bottom = source_top + api.nvim_win_get_height(session.source_winid) - 1
-  local overlaps_vertically = panel_top <= source_bottom and source_top <= panel_bottom
-  if not overlaps_vertically then return false end
+  if panel_top ~= source_top or panel_bottom ~= source_bottom then return false end
 
   if config.opts.side == 'right' then
     return panel_left == source_left + api.nvim_win_get_width(session.source_winid) + 1
@@ -770,11 +993,46 @@ local function create_panel_autocmds(session)
 
   api.nvim_create_autocmd({ 'WinResized', 'TabEnter' }, {
     group = session.augroup,
-    callback = function() schedule_panel_integrity_check(session) end,
+    callback = function()
+      schedule_panel_integrity_check(session)
+      vim.schedule(function()
+        if not session_live(session) then return end
+        local current = api.nvim_get_current_win()
+        synchronize_windows(session, managed_sync_window(session, current) and current or session.source_winid, true)
+      end)
+    end,
     desc = 'Keep the blame panel beside its source window',
   })
 
-  api.nvim_create_autocmd({ 'CursorMoved', 'WinScrolled' }, {
+  api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
+    group = session.augroup,
+    callback = function()
+      local current = api.nvim_get_current_win()
+      if managed_sync_window(session, current) then synchronize_windows(session, current, false) end
+    end,
+    desc = 'Keep blame cursors on the same source line',
+  })
+
+  api.nvim_create_autocmd('WinScrolled', {
+    group = session.augroup,
+    callback = function(args)
+      if not session_live(session) then return end
+      local panel_scrolled = vertical_window_change(session.panel_winid)
+      local active = scrolled_managed_window(session, args.match)
+      if active then synchronize_windows(session, active, false) end
+
+      if panel_scrolled then
+        local commit_info = require 'blame-column.commit_info_window'
+        if commit_info.state.commit_info_bufnr then
+          close_detail(session)
+          if config.opts.commit_info.follow_cursor then open_commit_info(session) end
+        end
+      end
+    end,
+    desc = 'Keep blame viewports aligned while scrolling',
+  })
+
+  api.nvim_create_autocmd('CursorMoved', {
     group = session.augroup,
     buffer = session.panel_bufnr,
     callback = function()
@@ -793,6 +1051,9 @@ local function configure_panel_window(session)
   for _, name in ipairs({ 'wrap', 'number', 'relativenumber', 'cursorline', 'signcolumn', 'list' }) do
     set_window_option(session.panel_winid, name, window_opts[name])
   end
+  set_window_option(session.panel_winid, 'wrap', false)
+  set_window_option(session.panel_winid, 'foldenable', false)
+  set_window_option(session.panel_winid, 'scrolloff', get_window_option(session.source_winid, 'scrolloff'))
   set_window_option(session.panel_winid, 'winfixwidth', true)
 
   if get_window_option(session.source_winid, 'winbar') ~= '' then
@@ -800,22 +1061,29 @@ local function configure_panel_window(session)
   end
 end
 
-local function sync_windows(session)
-  session.source_restore = {
-    scrollbind = get_window_option(session.source_winid, 'scrollbind'),
-    cursorbind = get_window_option(session.source_winid, 'cursorbind'),
-  }
+local function initialize_window_sync(session)
   session.bindings_applied = true
-  set_window_option(session.panel_winid, 'scrollbind', true)
-  set_window_option(session.panel_winid, 'cursorbind', true)
-  set_window_option(session.source_winid, 'scrollbind', true)
-  set_window_option(session.source_winid, 'cursorbind', true)
-  api.nvim_win_call(session.source_winid, function() vim.cmd 'syncbind' end)
-  session.source_managed = {
-    scrollbind = get_window_option(session.source_winid, 'scrollbind'),
-    cursorbind = get_window_option(session.source_winid, 'cursorbind'),
-  }
-  session.panel_managed = capture_window_options(session.panel_winid)
+
+  local ok, err = xpcall(function()
+    set_window_option(session.panel_winid, 'scrollbind', false)
+    set_window_option(session.panel_winid, 'cursorbind', false)
+    apply_source_window_options(session)
+
+    local source_cursor = api.nvim_win_get_cursor(session.source_winid)
+    local panel_line_count = api.nvim_buf_line_count(session.panel_bufnr)
+    api.nvim_win_set_cursor(session.panel_winid, { math.min(source_cursor[1], panel_line_count), 0 })
+
+    set_window_option(session.panel_winid, 'scrollbind', true)
+    if not synchronize_windows(session, session.source_winid, true) then
+      error 'Unable to initialize blame synchronization'
+    end
+    session.panel_managed = capture_window_options(session.panel_winid)
+  end, debug.traceback)
+  if not ok then
+    restore_source_window_options(session, true)
+    error(err)
+  end
+
   session.source_marker = 'CustomBlameSource' .. session.id
   session.panel_marker = 'CustomBlamePanel' .. session.id
   add_window_marker(session.source_winid, session.source_marker)
@@ -862,8 +1130,8 @@ local function create_panel(session, file_info)
   api.nvim_win_set_width(session.panel_winid, width)
 
   create_panel_keymaps(session)
+  initialize_window_sync(session)
   create_panel_autocmds(session)
-  sync_windows(session)
 end
 
 local function render_result(session, file_info, target)
@@ -891,6 +1159,9 @@ local function render_result(session, file_info, target)
   session.file_info = file_info
   session.rendered_target = copy_target(target)
   session.status = 'open'
+  if session.bindings_applied and not synchronize_windows(session, session.source_winid, true) then
+    error 'Unable to realign the refreshed blame panel'
+  end
 end
 
 local function handle_result(session, request, file_info)
@@ -1033,6 +1304,7 @@ local function request_blame(session, target, clear_panel, force, reason)
     else
       resize_pending_panel(session, line_count)
     end
+    synchronize_windows(session, session.source_winid, true)
   else
     session.status = 'opening'
   end
@@ -1116,11 +1388,49 @@ local function attach_source_buffer(session, bufnr)
 end
 
 local function create_source_autocmds(session)
+  api.nvim_create_autocmd('BufLeave', {
+    group = session.augroup,
+    callback = function(args)
+      suspend_source_window_options(session, args.buf)
+    end,
+    desc = 'Preserve per-buffer source options before leaving a managed blame buffer',
+  })
+
+  api.nvim_create_autocmd('BufWinLeave', {
+    group = session.augroup,
+    callback = function(args)
+      if session.source_options_bufnr ~= args.buf or api.nvim_get_current_win() ~= session.source_winid then return end
+      if not session.source_options_suspended then suspend_source_window_options(session, args.buf) end
+      session.source_options_bufnr = nil
+      session.source_options_suspended = nil
+      session.suspended_source_view = nil
+    end,
+    desc = 'Forget restored source options after its buffer leaves the blame window',
+  })
+
   api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter' }, {
     group = session.augroup,
     callback = function(args)
       if not session_live(session) or not win_valid(session.source_winid) then return end
       if api.nvim_win_get_buf(session.source_winid) ~= args.buf then return end
+
+      if args.event == 'BufWinEnter' and session.bindings_applied and session.source_options_bufnr ~= args.buf then
+        local ok, err = xpcall(function()
+          apply_source_window_options(session)
+          if win_valid(session.panel_winid) then
+            set_window_option(session.panel_winid, 'scrolloff', get_window_option(session.source_winid, 'scrolloff'))
+            if session.panel_managed then
+              session.panel_managed.scrolloff = get_restorable_window_option(session.panel_winid, 'scrolloff')
+            end
+          end
+          synchronize_windows(session, session.source_winid, true)
+        end, debug.traceback)
+        if not ok then
+          fail_session(session, 'Unable to manage the new blame source buffer: ' .. tostring(err))
+          return
+        end
+      end
+
       attach_source_buffer(session, args.buf)
       schedule_source_reconcile(session, 'buffer-entered', false)
     end,
@@ -1157,7 +1467,22 @@ local function create_source_autocmds(session)
       local current = api.nvim_get_current_win()
       if fallback and fallback.windows_before[current] then session.fallback_window_context = nil end
       session.last_entered_window = current
-      if api.nvim_get_current_win() == session.source_winid then close_detail(session) end
+
+      if session.source_options_suspended then
+        local ok, err = xpcall(function()
+          if resume_source_window_options(session) then
+            synchronize_windows(session, session.source_winid, true)
+          end
+        end, debug.traceback)
+        if not ok then
+          restore_source_window_options(session, true)
+          fail_session(session, 'Unable to resume blame source options: ' .. tostring(err))
+          return
+        end
+      end
+
+      if managed_sync_window(session, current) then synchronize_windows(session, current, true) end
+      if current == session.source_winid then close_detail(session) end
     end,
     desc = 'Close blame details when returning to the source',
   })
