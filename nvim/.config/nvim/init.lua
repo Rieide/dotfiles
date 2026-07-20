@@ -218,10 +218,8 @@ vim.keymap.set('n', '<leader>]', '<cmd>normal! <C-]><CR>', { desc = 'Tags: jump 
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
 -- Arrow keys are coarse movement; hjkl stays available for precise movement.
-vim.keymap.set({ 'n', 'x', 'o' }, '<left>', 'k', { desc = 'Move up one line' })
-vim.keymap.set({ 'n', 'x', 'o' }, '<right>', 'j', { desc = 'Move down one line' })
-vim.keymap.set({ 'n', 'x', 'o' }, '<up>', '{', { desc = 'Jump to previous paragraph' })
-vim.keymap.set({ 'n', 'x', 'o' }, '<down>', '}', { desc = 'Jump to next paragraph' })
+vim.keymap.set({ 'n', 'x', 'o' }, '<left>', '5k', { desc = 'Move up five lines' })
+vim.keymap.set({ 'n', 'x', 'o' }, '<right>', '5j', { desc = 'Move down five lines' })
 
 -- Ctrl-h/j/k/l navigation is provided by custom.plugins.tmux-navigator so it
 -- can cross Neovim/tmux boundaries without wrapping or dropping tmux zoom.
