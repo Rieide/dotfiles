@@ -460,7 +460,9 @@ local function apply_source_window_options(session)
   local managed = vim.tbl_extend('force', vim.deepcopy(original), {
     wrap = false,
     foldenable = false,
-    scrollbind = true,
+    -- Native scrollbind can propagate a panel buffer redraw back into the
+    -- source. CursorMoved/WinScrolled callbacks below synchronize explicitly.
+    scrollbind = false,
     cursorbind = false,
   })
 
@@ -519,13 +521,15 @@ local function resume_source_window_options(session)
   session.suspended_source_view = nil
   if saved_view then
     local panel_valid = win_valid(session.panel_winid)
+    local source_scrollbind = session.source_managed.scrollbind
+    local panel_scrollbind = session.panel_managed and session.panel_managed.scrollbind or false
     local ok, err = xpcall(function()
       set_window_option(session.source_winid, 'scrollbind', false)
       if panel_valid then set_window_option(session.panel_winid, 'scrollbind', false) end
       api.nvim_win_call(session.source_winid, function() vim.fn.winrestview(saved_view) end)
     end, debug.traceback)
-    pcall(set_window_option, session.source_winid, 'scrollbind', true)
-    if panel_valid then pcall(set_window_option, session.panel_winid, 'scrollbind', true) end
+    pcall(set_window_option, session.source_winid, 'scrollbind', source_scrollbind)
+    if panel_valid then pcall(set_window_option, session.panel_winid, 'scrollbind', panel_scrollbind) end
     if not ok then error(err) end
   end
   return true
@@ -591,6 +595,8 @@ local function clamped_column(bufnr, row, column)
 end
 
 local function align_bound_view(session, active_winid, other_winid, active_view)
+  local source_scrollbind = get_window_option(session.source_winid, 'scrollbind')
+  local panel_scrollbind = get_window_option(session.panel_winid, 'scrollbind')
   set_window_option(session.source_winid, 'scrollbind', false)
   set_window_option(session.panel_winid, 'scrollbind', false)
 
@@ -603,11 +609,13 @@ local function align_bound_view(session, active_winid, other_winid, active_view)
     end)
   end, debug.traceback)
 
-  pcall(set_window_option, session.source_winid, 'scrollbind', true)
-  pcall(set_window_option, session.panel_winid, 'scrollbind', true)
+  pcall(set_window_option, session.source_winid, 'scrollbind', source_scrollbind)
+  pcall(set_window_option, session.panel_winid, 'scrollbind', panel_scrollbind)
   if not ok then error(err) end
 
-  api.nvim_win_call(active_winid, function() vim.cmd 'syncbind' end)
+  if source_scrollbind and panel_scrollbind then
+    api.nvim_win_call(active_winid, function() vim.cmd 'syncbind' end)
+  end
 end
 
 local function synchronize_windows(session, active_winid, force_view)
@@ -661,6 +669,83 @@ local function synchronize_windows(session, active_winid, force_view)
     return false
   end
   return ok
+end
+
+local function update_panel_preserving_source_view(session, update)
+  if not session.bindings_applied
+    or not win_valid(session.source_winid)
+    or not win_valid(session.panel_winid)
+    or not buf_valid(session.panel_bufnr)
+    or api.nvim_win_get_buf(session.panel_winid) ~= session.panel_bufnr
+  then
+    return update()
+  end
+
+  local source_winid = session.source_winid
+  local panel_winid = session.panel_winid
+  local source_bufnr = api.nvim_win_get_buf(source_winid)
+  local source_view = window_view(source_winid)
+  local bindings = {
+    source_scrollbind = get_window_option(source_winid, 'scrollbind'),
+    source_cursorbind = get_window_option(source_winid, 'cursorbind'),
+    panel_scrollbind = get_window_option(panel_winid, 'scrollbind'),
+    panel_cursorbind = get_window_option(panel_winid, 'cursorbind'),
+  }
+
+  local function restore_bindings()
+    if not session_live(session) then return end
+    if win_valid(source_winid) then
+      pcall(set_window_option, source_winid, 'scrollbind', bindings.source_scrollbind)
+      pcall(set_window_option, source_winid, 'cursorbind', bindings.source_cursorbind)
+    end
+    if win_valid(panel_winid) then
+      pcall(set_window_option, panel_winid, 'scrollbind', bindings.panel_scrollbind)
+      pcall(set_window_option, panel_winid, 'cursorbind', bindings.panel_cursorbind)
+    end
+  end
+
+  local unbound, unbind_err = xpcall(function()
+    set_window_option(source_winid, 'scrollbind', false)
+    set_window_option(source_winid, 'cursorbind', false)
+    set_window_option(panel_winid, 'scrollbind', false)
+    set_window_option(panel_winid, 'cursorbind', false)
+  end, debug.traceback)
+  if not unbound then
+    restore_bindings()
+    error(unbind_err, 0)
+  end
+
+  local updated, update_err = xpcall(update, debug.traceback)
+  local restored, restore_err = xpcall(function()
+    if not session_live(session)
+      or not win_valid(source_winid)
+      or api.nvim_win_get_buf(source_winid) ~= source_bufnr
+      or not win_valid(panel_winid)
+      or not buf_valid(session.panel_bufnr)
+      or api.nvim_win_get_buf(panel_winid) ~= session.panel_bufnr
+    then
+      return
+    end
+
+    api.nvim_win_call(source_winid, function() vim.fn.winrestview(source_view) end)
+
+    local source_cursor = api.nvim_win_get_cursor(source_winid)
+    local panel_line_count = api.nvim_buf_line_count(session.panel_bufnr)
+    local panel_row = math.min(source_cursor[1], panel_line_count)
+    api.nvim_win_set_cursor(panel_winid, { panel_row, 0 })
+
+    local aligned_source_view = window_view(source_winid)
+    api.nvim_win_call(panel_winid, function()
+      local panel_view = vim.fn.winsaveview()
+      panel_view.topline = math.min(aligned_source_view.topline, panel_line_count)
+      panel_view.topfill = aligned_source_view.topfill
+      vim.fn.winrestview(panel_view)
+    end)
+  end, debug.traceback)
+  restore_bindings()
+
+  if not updated then error(update_err, 0) end
+  if not restored then error(restore_err, 0) end
 end
 
 local function vertical_window_change(winid)
@@ -1073,7 +1158,7 @@ local function initialize_window_sync(session)
     local panel_line_count = api.nvim_buf_line_count(session.panel_bufnr)
     api.nvim_win_set_cursor(session.panel_winid, { math.min(source_cursor[1], panel_line_count), 0 })
 
-    set_window_option(session.panel_winid, 'scrollbind', true)
+    set_window_option(session.panel_winid, 'scrollbind', false)
     if not synchronize_windows(session, session.source_winid, true) then
       error 'Unable to initialize blame synchronization'
     end
@@ -1147,11 +1232,13 @@ local function render_result(session, file_info, target)
       error 'Blame panel was replaced while Git blame was running'
     end
 
-    render_buffer(session.panel_bufnr, file_info)
-    if config.opts.dynamic_width then
-      local width = math.max(1, utils.calculate_max_width(file_info, config.opts))
-      api.nvim_win_set_width(session.panel_winid, width)
-    end
+    update_panel_preserving_source_view(session, function()
+      render_buffer(session.panel_bufnr, file_info)
+      if config.opts.dynamic_width then
+        local width = math.max(1, utils.calculate_max_width(file_info, config.opts))
+        api.nvim_win_set_width(session.panel_winid, width)
+      end
+    end)
   else
     create_panel(session, file_info)
   end
@@ -1298,16 +1385,29 @@ local function request_blame(session, target, clear_panel, force, reason)
   close_detail(session)
 
   if session.panel_bufnr then
-    local line_count = api.nvim_buf_line_count(target.bufnr)
-    if clear_panel then
-      blank_panel(session, line_count)
-    else
-      resize_pending_panel(session, line_count)
+    local prepared, prepare_err = xpcall(function()
+      local line_count = api.nvim_buf_line_count(target.bufnr)
+      update_panel_preserving_source_view(session, function()
+        if clear_panel then
+          blank_panel(session, line_count)
+        else
+          resize_pending_panel(session, line_count)
+        end
+      end)
+      if not synchronize_windows(session, session.source_winid, true) then
+        error 'Unable to realign the pending blame panel'
+      end
+    end, debug.traceback)
+    if not prepared then
+      if session_live(session) and session.request == request then
+        fail_session(session, 'Unable to prepare blame refresh: ' .. tostring(prepare_err))
+      end
+      return
     end
-    synchronize_windows(session, session.source_winid, true)
   else
     session.status = 'opening'
   end
+  if not session_live(session) or session.request ~= request then return end
   refresh_public_state(session)
 
   local ok, err = pcall(async_get_git_blame, target.bufnr, function(file_info)

@@ -214,8 +214,8 @@ local function assert_managed_options(label, source_winid, panel_winid, original
   assert_equal(get_win_option(panel_winid, 'foldenable'), false, label .. ' panel folds disabled')
   assert_equal(get_win_option(source_winid, 'cursorbind'), false, label .. ' source cursorbind disabled')
   assert_equal(get_win_option(panel_winid, 'cursorbind'), false, label .. ' panel cursorbind disabled')
-  assert_equal(get_win_option(source_winid, 'scrollbind'), true, label .. ' source scrollbind enabled')
-  assert_equal(get_win_option(panel_winid, 'scrollbind'), true, label .. ' panel scrollbind enabled')
+  assert_equal(get_win_option(source_winid, 'scrollbind'), false, label .. ' source scrollbind disabled')
+  assert_equal(get_win_option(panel_winid, 'scrollbind'), false, label .. ' panel scrollbind disabled')
   assert_equal(get_win_option(panel_winid, 'scrolloff'), original_scrolloff, label .. ' panel scrolloff inherited')
   assert_equal(api.nvim_win_get_height(panel_winid), api.nvim_win_get_height(source_winid), label .. ' equal heights')
 end
@@ -278,7 +278,7 @@ local function run()
   local source_winid = api.nvim_get_current_win()
   set_win_option(source_winid, 'wrap', false)
   set_win_option(source_winid, 'foldenable', true)
-  set_win_option(source_winid, 'scrollbind', false)
+  set_win_option(source_winid, 'scrollbind', true)
   set_win_option(source_winid, 'cursorbind', true)
   set_win_option(source_winid, 'scrolloff', 2)
   set_win_option(source_winid, 'foldmethod', 'manual')
@@ -286,7 +286,7 @@ local function run()
   local second_original = {
     wrap = false,
     foldenable = true,
-    scrollbind = false,
+    scrollbind = true,
     cursorbind = true,
     scrolloff = 2,
   }
@@ -354,7 +354,7 @@ local function run()
   close_and_assert_restored('mid-file close', source_winid, original)
 
   -- Second session: opening on the final wrapped line used to retain a stale
-  -- scrollbind offset. Reopen there and alternate pure scrolling and cursor moves.
+  -- viewport offset. Reopen there and alternate pure scrolling and cursor moves.
   feed(source_winid, 'Gzb')
   assert_equal(api.nvim_win_get_cursor(source_winid)[1], line_count, 'prepare EOF reopen')
   controller.toggle()
