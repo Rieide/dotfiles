@@ -92,6 +92,7 @@ return {
     pcall(telescope.load_extension, 'ui-select')
 
     local builtin = require 'telescope.builtin'
+    local lsp_navigation = require 'custom.lsp_navigation'
     vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = '[F]ind [F]iles' })
     vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = '[F]ind by [G]rep' })
     vim.keymap.set({ 'n', 'v' }, '<leader>fw', builtin.grep_string, { desc = '[F]ind current [W]ord' })
@@ -117,7 +118,7 @@ return {
         local buf = event.buf
 
         vim.keymap.set('n', '<leader>fd', builtin.lsp_definitions, { buffer = buf, desc = '[F]ind [D]efinitions' })
-        vim.keymap.set('n', '<leader>fD', vim.lsp.buf.declaration, { buffer = buf, desc = '[F]ind [D]eclarations' })
+        vim.keymap.set('n', '<leader>fD', lsp_navigation.jump(vim.lsp.buf.declaration), { buffer = buf, desc = '[F]ind [D]eclarations' })
         vim.keymap.set('n', '<leader>fi', builtin.lsp_implementations, { buffer = buf, desc = '[F]ind [I]mplementations' })
         vim.keymap.set('n', '<leader>ft', builtin.lsp_type_definitions, { buffer = buf, desc = '[F]ind [T]ype definitions' })
         vim.keymap.set('n', '<leader>fr', builtin.lsp_references, { buffer = buf, desc = '[F]ind [R]eferences' })

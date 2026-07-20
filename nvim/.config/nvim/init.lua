@@ -249,6 +249,36 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   callback = function() vim.hl.on_yank() end,
 })
 
+-- Neovim's default handler edits through swaps owned by another live Nvim.
+-- Replace it so navigation never bypasses potentially recoverable changes.
+pcall(vim.api.nvim_del_augroup_by_name, 'nvim.swapfile')
+vim.api.nvim_create_autocmd('SwapExists', {
+  desc = 'Resolve swap conflicts without blocking navigation',
+  group = vim.api.nvim_create_augroup('kickstart-swap-conflicts', { clear = true }),
+  callback = function(args)
+    local swapname = vim.v.swapname
+    local info = vim.fn.swapinfo(swapname)
+    local clean_stale_swap = info.error == nil and info.pid == 0 and info.dirty == 0
+
+    -- A clean swap has no edits to recover. Any dirty, unreadable, or live
+    -- conflict stays read-only, and its recovery file is never deleted here.
+    vim.v.swapchoice = clean_stale_swap and 'e' or 'o'
+    if clean_stale_swap then return end
+
+    local filename = vim.fn.fnamemodify(args.file, ':~:.')
+    local message
+    if info.error ~= nil then
+      message = ('Could not inspect the swap for %s; opened read-only'):format(filename)
+    elseif info.pid ~= 0 then
+      message = ('%s is already being edited by process %d; opened read-only'):format(filename, info.pid)
+    else
+      message = ('%s has recoverable changes in %s; opened read-only'):format(filename, swapname)
+    end
+
+    vim.schedule(function() vim.notify(message, vim.log.levels.WARN, { title = 'Swap conflict' }) end)
+  end,
+})
+
 local window_resize_group = vim.api.nvim_create_augroup('kickstart-window-resize', { clear = true })
 
 vim.api.nvim_create_autocmd('FileType', {
@@ -427,6 +457,7 @@ require('lazy').setup({
     },
     config = function()
       local clangd_compile_db_checked = {}
+      local lsp_navigation = require 'custom.lsp_navigation'
 
       local function clangd_root_dir(client, bufnr)
         if client.config and client.config.root_dir then return client.config.root_dir end
@@ -517,11 +548,11 @@ require('lazy').setup({
 
           -- Direct jumps. These use the jumplist, so <C-o> jumps back.
           -- They intentionally make old Vim muscle memory use LSP instead of tags.
-          map('<C-]>', vim.lsp.buf.definition, '[D]efinition')
-          map('gd', vim.lsp.buf.definition, '[G]oto [D]efinition')
-          map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
-          map('gi', vim.lsp.buf.implementation, '[G]oto [I]mplementation')
-          map('gI', vim.lsp.buf.implementation, '[G]oto [I]mplementation')
+          map('<C-]>', lsp_navigation.jump(vim.lsp.buf.definition), '[D]efinition')
+          map('gd', lsp_navigation.jump(vim.lsp.buf.definition), '[G]oto [D]efinition')
+          map('gD', lsp_navigation.jump(vim.lsp.buf.declaration), '[G]oto [D]eclaration')
+          map('gi', lsp_navigation.jump(vim.lsp.buf.implementation), '[G]oto [I]mplementation')
+          map('gI', lsp_navigation.jump(vim.lsp.buf.implementation), '[G]oto [I]mplementation')
           map('K', vim.lsp.buf.hover, 'Hover documentation')
 
           -- Rename the variable under your cursor.
@@ -534,7 +565,7 @@ require('lazy').setup({
 
           -- WARN: This is not Goto Definition, this is Goto Declaration.
           --  For example, in C this would take you to the header.
-          map('grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
+          map('grD', lsp_navigation.jump(vim.lsp.buf.declaration), '[G]oto [D]eclaration')
 
           -- The following two autocommands are used to highlight references of the
           -- word under your cursor when your cursor rests there for a little while.
