@@ -203,7 +203,9 @@ vim.diagnostic.config {
   jump = { float = true },
 }
 
-vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic location list' })
+
+require('custom.quickfix').setup()
 
 -- Keep tags available as an explicit fallback. In LSP buffers, <C-]> is remapped
 -- to LSP definition so it does not accidentally jump through a stale tags file.

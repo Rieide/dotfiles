@@ -15,11 +15,22 @@ return {
     { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
   },
   config = function()
+    local actions = require 'telescope.actions'
     local themes = require 'telescope.themes'
     local telescope = require 'telescope'
 
     telescope.setup {
       defaults = {
+        mappings = {
+          i = {
+            ['<C-q>'] = actions.send_to_qflist + actions.open_qflist,
+            ['<M-q>'] = actions.send_selected_to_qflist + actions.open_qflist,
+          },
+          n = {
+            ['<C-q>'] = actions.send_to_qflist + actions.open_qflist,
+            ['<M-q>'] = actions.send_selected_to_qflist + actions.open_qflist,
+          },
+        },
         sorting_strategy = 'descending',
         scroll_strategy = 'limit',
         layout_strategy = 'flex',

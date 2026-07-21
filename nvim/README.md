@@ -13,6 +13,8 @@ Current migration state:
 - based on kickstart.nvim with local plugin modules under
   `lua/custom/plugins`
 - Telescope is the primary picker
+- native Quickfix is the persistent result list for searches and other
+  multi-location producers
 - Neo-tree is the file explorer
 - bufferline owns the top buffer UI and visible-buffer number jumps
 - lualine owns the statusline and winbar
