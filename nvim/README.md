@@ -25,7 +25,9 @@ Current migration state:
   formatting
 - clangd is configured with compile database warnings for C/C++ buffers
 
-Practice notes for daily Neovim use live in `PRACTICE.md`.
+Practice notes for daily Neovim use live in [`PRACTICE.md`](PRACTICE.md). The
+complete search-to-Quickfix workflow is documented in
+[`QUICKFIX_GUIDE.md`](QUICKFIX_GUIDE.md).
 
 A proposed profiler workflow covering source heat annotations, a compact
 hotspot sidebar, and a Snacks-hosted flamegraph panel is documented in
