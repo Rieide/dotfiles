@@ -8,6 +8,7 @@
 return {
   require 'custom.plugins.bufferline',
   require 'custom.plugins.catppuccin',
+  require 'custom.plugins.diffview',
   require 'custom.plugins.flash',
   require 'custom.plugins.grug-far',
   require 'custom.plugins.kanagawa',
