@@ -63,8 +63,9 @@ proxies, tokens, and experiments belong in local files such as
       vim-tmux-navigator at pinned commits without startup-time cloning or
       plugin updates.
 - [x] Use a sesh/fzf popup for tmux and zoxide sessions, add seamless
-      Neovim/tmux navigation, keep safe layout-only persistence, and retain the
-      Lazygit popup and current xclip bindings.
+      Neovim/tmux navigation, persist layouts, bash panes, and full scrollback
+      outside the repository, and retain the Lazygit popup and current xclip
+      bindings.
 - [x] Keep the repository-managed tmux config and pinned plugins under
       `~/.config/tmux` working with a custom `XDG_CONFIG_HOME`, and make the
       picker repair its managed PATH for an already-running tmux server.

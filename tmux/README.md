@@ -192,9 +192,13 @@ pane id；普通状态继续使用 tmux 原生命令，避免为常规导航启�
 
 ## 保存与恢复
 
-tmux-resurrect 保存 session、window、pane、pane command、布局和工作目录；配置明确
-设置 `@resurrect-capture-pane-contents off`，不会保存 pane 当前可见文本、shell 输出
-或屏幕内容。
+tmux-resurrect 保存 session、window、pane、布局、工作目录和完整 pane scrollback。
+恢复进程仍使用插件的保守默认白名单，只额外加入 `bash`：原来运行 bash 的 pane 会在
+默认 zsh pane 创建后重新进入 bash，`node`、`python`、`mainboard` 等不会自动重启。
+
+快照和 pane 内容固定保存在 `~/.local/share/tmux/resurrect`，位于 dotfiles 仓库之外，
+不会随本仓库提交或上传 GitHub。pane 内容没有加密，且每个 pane 最多可能保存
+`history-limit` 指定的 50,000 行；其中可能包含终端输出里的路径或敏感文本。
 
 | 快捷键 / 事件 | 行为 |
 | --- | --- |
@@ -214,6 +218,9 @@ tmux 配置仍能加载，但手动保存/恢复键和自动保存/恢复不可�
 
 ```sh
 tmux show-options -g @resurrect-capture-pane-contents
+tmux show-options -g @resurrect-pane-contents-area
+tmux show-options -g @resurrect-processes
+tmux show-options -g @resurrect-dir
 tmux show-options -g @continuum-save-interval
 tmux list-keys | grep 'C-s\|C-r'
 ```
@@ -253,7 +260,8 @@ dry-run 返回 `2` 表示命令已完成并打印汇总，但需要审查其中�
 - [ ] 长路径会截断，活动 pane 标题包含短路径和当前命令。
 - [ ] Neovim split 与 tmux pane 四向导航顺畅，边缘不循环，zoom 保持。
 - [ ] `Prefix+Ctrl-f` 只显示 tmux 与 zoxide，预览在右侧且能够连接。
-- [ ] resurrect 手动保存/恢复和 continuum 自动恢复有效，保存文件无 pane 文本。
+- [ ] resurrect 手动保存/恢复和 continuum 自动恢复有效，bash 与完整 scrollback 可恢复。
+- [ ] resurrect 快照只出现在 `~/.local/share/tmux/resurrect`，dotfiles 工作区中没有快照。
 - [ ] 当前 X11 环境中 `y`、Enter 和鼠标拖选可通过 xclip 复制。
 
 ## 延期项目
