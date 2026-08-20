@@ -91,3 +91,8 @@ fi
 
 # Local overrides, loaded last and never committed.
 [[ -r "${HOME}/.zshrc.local" ]] && source "${HOME}/.zshrc.local"
+
+# Keep each tmux pane's conda environment current for tmux-resurrect. The
+# shared fragment also prepares bash shells launched from this zsh.
+[[ -r "${HOME}/.config/tmux/scripts/conda-resurrect-shell-hook" ]] && \
+  source "${HOME}/.config/tmux/scripts/conda-resurrect-shell-hook"

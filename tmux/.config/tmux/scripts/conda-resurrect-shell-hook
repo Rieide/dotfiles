@@ -1,0 +1,29 @@
+# Shared zsh/bash prompt hook for per-pane conda state tracking.
+
+if [[ -n "${TMUX_PANE:-}" && -x "${HOME}/.config/tmux/scripts/conda-resurrect" ]]; then
+  _dotfiles_tmux_conda_track() {
+    command "${HOME}/.config/tmux/scripts/conda-resurrect" track >/dev/null 2>&1
+  }
+
+  if [[ -n "${ZSH_VERSION:-}" ]]; then
+    autoload -Uz add-zsh-hook
+    add-zsh-hook -d precmd _dotfiles_tmux_conda_track 2>/dev/null
+    add-zsh-hook precmd _dotfiles_tmux_conda_track
+
+    # Bash shells launched from this zsh inherit the same prompt tracker.
+    _dotfiles_tmux_conda_command="${HOME}/.config/tmux/scripts/conda-resurrect track"
+    if [[ ";${PROMPT_COMMAND:-};" != *";${_dotfiles_tmux_conda_command};"* ]]; then
+      export PROMPT_COMMAND="${_dotfiles_tmux_conda_command}${PROMPT_COMMAND:+;${PROMPT_COMMAND}}"
+    fi
+    unset _dotfiles_tmux_conda_command
+  elif [[ -n "${BASH_VERSION:-}" ]]; then
+    _dotfiles_tmux_conda_command="${HOME}/.config/tmux/scripts/conda-resurrect track"
+    case ";${PROMPT_COMMAND:-};" in
+      *";${_dotfiles_tmux_conda_command};"*) ;;
+      *) export PROMPT_COMMAND="${_dotfiles_tmux_conda_command}${PROMPT_COMMAND:+;${PROMPT_COMMAND}}" ;;
+    esac
+    unset _dotfiles_tmux_conda_command
+  fi
+
+  _dotfiles_tmux_conda_track
+fi
