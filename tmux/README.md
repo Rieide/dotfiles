@@ -152,13 +152,15 @@ Vi copy mode 通过 `Prefix+[` 进入（tmux 默认键）：
 | --- | --- |
 | `v` | 开始选择 |
 | `Ctrl-v` | 切换矩形选择 |
-| `y` / `Enter` | 复制到 X11 clipboard 并退出 copy mode |
-| 鼠标拖选后松开 | 复制到 X11 clipboard |
+| `y` / `Enter` | 复制到系统 clipboard 并退出 copy mode |
+| 鼠标拖选后松开 | 复制到系统 clipboard |
 | `Ctrl-h/j/k/l` | 不循环地选择相邻 tmux pane |
 
-复制目前直接调用 `xclip -selection clipboard -in`。因此 X11 下需要 `xclip` 和有效
-`DISPLAY`；Wayland、纯 SSH 或没有 xclip 时 copy mode 本身仍工作，但外部剪贴板
-命令会失败。`set-clipboard on` 同时允许支持 OSC 52 的应用/终端设置剪贴板。
+`scripts/copy-selection` 在每次复制时按当前 client 环境选择 provider：有效 Wayland
+会话且存在 `wl-copy` 时优先使用它；否则在有效 X11 会话且存在 `xclip` 时使用
+`xclip`；最后通过 tmux 原生 `load-buffer -w` 向触发复制的 client 发送 OSC 52。
+tmux server 会在 client attach 时同步 Wayland 环境变量，因此本地桌面、X11 转发和
+纯 SSH 可以共用同一组绑定。若终端禁用 OSC 52，文本仍保留在 tmux paste buffer。
 
 ## Neovim 与 tmux 无缝导航
 
@@ -249,6 +251,7 @@ tmux list-keys | grep 'C-s\|C-r'
 
 ```sh
 bash -n install.sh
+bash -n tmux/.config/tmux/scripts/copy-selection
 bash -n tmux/.config/tmux/scripts/sesh-picker
 bash -n tmux/.config/tmux/scripts/navigate-zoomed
 ./install.sh --install-only --dry-run
@@ -269,10 +272,9 @@ dry-run 返回 `2` 表示命令已完成并打印汇总，但需要审查其中�
 - [ ] `Prefix+Ctrl-f` 只显示 tmux 与 zoxide，预览在右侧且能够连接。
 - [ ] resurrect 手动保存/恢复和 continuum 自动恢复有效，bash 与完整 scrollback 可恢复。
 - [ ] resurrect 快照只出现在 `~/.local/share/tmux/resurrect`，dotfiles 工作区中没有快照。
-- [ ] 当前 X11 环境中 `y`、Enter 和鼠标拖选可通过 xclip 复制。
+- [ ] Wayland、X11 和纯 SSH 中 `y`、Enter、鼠标拖选均可复制到系统剪贴板。
 
 ## 延期项目
 
-- TODO：单独设计不依赖 xclip、能识别 X11/Wayland/OSC 52/SSH 的自适应剪贴板方案。
 - which-key、tmux-yank、tmux-open、tmux-fzf 暂不加入，避免快捷键和职责重叠。
 - sesh session 删除快捷键、硬编码项目列表和私人目录均不在首版范围内。

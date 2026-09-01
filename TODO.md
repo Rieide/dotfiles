@@ -64,8 +64,10 @@ proxies, tokens, and experiments belong in local files such as
       plugin updates.
 - [x] Use a sesh/fzf popup for tmux and zoxide sessions, add seamless
       Neovim/tmux navigation, persist layouts, bash panes, and full scrollback
-      outside the repository, and retain the Lazygit popup and current xclip
-      bindings.
+      outside the repository, and retain the Lazygit popup.
+- [x] Select wl-copy, xclip, or native OSC 52 for tmux copies based on the
+      attached client environment, with both desktop providers managed as
+      preferred bootstrap tools.
 - [x] Keep the repository-managed tmux config and pinned plugins under
       `~/.config/tmux` working with a custom `XDG_CONFIG_HOME`, and make the
       picker repair its managed PATH for an already-running tmux server.
@@ -128,10 +130,6 @@ Work through these before adding another large group of editor plugins.
 - [ ] Add `build-essential` (or at minimum `make`) and `unzip` to the bootstrap.
       Neovim health checks require them, telescope-fzf-native builds with
       `make`, and LuaSnip can build its regex module with `make`.
-- [ ] Install and verify `xclip` for the current tmux clipboard bindings.
-- [ ] Add `wl-clipboard` support and select `wl-copy` on Wayland while retaining
-      `xclip` as the X11 fallback.
-
 ### Bootstrap validation
 
 - [ ] Add a repository check command or script covering at least:

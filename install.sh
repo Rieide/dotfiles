@@ -48,6 +48,8 @@ PREFERRED_ITEMS=(
   nvim
   rg
   tmux
+  xclip
+  wl-copy
   bat
   delta
   gitleaks
@@ -76,6 +78,8 @@ declare -A ITEM_KIND=(
   [nvim]="snap"
   [rg]="apt"
   [tmux]="apt"
+  [xclip]="apt"
+  [wl-copy]="apt"
   [bat]="apt"
   [delta]="apt"
   [gitleaks]="apt"
@@ -95,6 +99,8 @@ declare -A ITEM_PACKAGE=(
   [nvim]=""
   [rg]="ripgrep"
   [tmux]="tmux"
+  [xclip]="xclip"
+  [wl-copy]="wl-clipboard"
   [bat]="bat"
   [delta]="git-delta"
   [gitleaks]="gitleaks"
@@ -114,6 +120,8 @@ declare -A ITEM_COMMAND=(
   [nvim]="nvim"
   [rg]="rg"
   [tmux]="tmux"
+  [xclip]="xclip"
+  [wl-copy]="wl-copy"
   [bat]="batcat"
   [delta]="delta"
   [gitleaks]="gitleaks"

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -u
+
+# tmux keeps the environment and PATH from its long-lived server. Include the
+# user install locations used by this repository before selecting a provider.
+export PATH="${HOME}/.local/bin:/snap/bin${PATH:+:${PATH}}"
+
+clipboard_file="$(mktemp "${TMPDIR:-/tmp}/tmux-clipboard.XXXXXX")" || exit 1
+trap 'rm -f "$clipboard_file"' EXIT
+cat >"$clipboard_file"
+
+if [[ -n "${WAYLAND_DISPLAY:-}" ]] && command -v wl-copy >/dev/null 2>&1; then
+  wl-copy <"$clipboard_file" 2>/dev/null && exit 0
+fi
+
+if [[ -n "${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1; then
+  xclip -selection clipboard -in <"$clipboard_file" 2>/dev/null && exit 0
+fi
+
+# Fall back to tmux's native OSC 52 support. copy-pipe already keeps the text
+# in a tmux buffer; load-buffer -w also forwards it to the triggering client.
+client="${1:-}"
+tmux_environment="${TMUX:-}"
+socket="${tmux_environment%%,*}"
+[[ -n "$socket" ]] || exit 0
+
+tmux_cmd=(tmux -S "$socket")
+if [[ -n "$client" ]]; then
+  "${tmux_cmd[@]}" load-buffer -w -t "$client" - <"$clipboard_file" 2>/dev/null && exit 0
+fi
+
+"${tmux_cmd[@]}" load-buffer -w - <"$clipboard_file" 2>/dev/null || true
