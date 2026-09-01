@@ -227,6 +227,13 @@ tmux list-keys | grep 'C-s\|C-r'
 
 ## SSH、终端和故障处理
 
+- tmux pane 会长期存活，不能自动继承桌面代理重连后的进程环境。共享 zsh 配置会在
+  tmux 内每次显示提示符和执行命令前读取 GNOME system proxy，并同步
+  `http_proxy`、`https_proxy`、`all_proxy` 及其大写形式；手动代理地址或端口变化、
+  关闭再开启 Clash Verge 都无需重启 tmux。代理关闭时会清除这些变量。PAC/auto
+  模式无法可靠转换为标准 shell 变量，因此不会覆盖现有值。若某台机器不应启用此
+  行为，在 `~/.zshrc.local` 设置 `TMUX_SYSTEM_PROXY_SYNC=0`。已经运行的网络程序
+  不会被 shell 改写环境，重连后仍异常时需重启该程序。
 - 最低 tmux 版本是 3.3；popup 标题与样式、RGB、single border 和当前格式均按此基线。
 - 终端应支持 `tmux-256color` 和真彩色。颜色异常时检查本地/远端 terminfo，并运行
   `tmux display-message -p '#{client_termname} #{client_termfeatures}'`。

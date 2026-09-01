@@ -91,3 +91,8 @@ fi
 
 # Local overrides, loaded last and never committed.
 [[ -r "${HOME}/.zshrc.local" ]] && source "${HOME}/.zshrc.local"
+
+# tmux panes outlive desktop proxy reconnects. Keep command-line proxy
+# variables aligned with GNOME's current system proxy before each command.
+[[ -r "${HOME}/.config/zsh/system-proxy.zsh" ]] && \
+  source "${HOME}/.config/zsh/system-proxy.zsh"
