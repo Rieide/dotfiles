@@ -15,6 +15,7 @@ environment:
 
 - `zsh` as the interactive shell
 - `tmux` as the terminal multiplexer
+- `zellij` as an additional terminal multiplexer configuration package
 - `starship` as the shell prompt
 - `nvim` as an active Neovim configuration package, based on kickstart.nvim and
   grown through explicit plugin choices instead of carrying LazyVim wholesale
@@ -53,6 +54,11 @@ tmux/
     └── tmux/
         └── tmux.conf
 
+zellij/
+└── .config/
+    └── zellij/
+        └── config.kdl
+
 starship/
 └── .config/
     └── starship.toml
@@ -68,6 +74,11 @@ nvim/
 
 Shared configuration belongs in the stowed package. Local configuration belongs
 outside the repository.
+
+The Zellij package currently preserves Zellij's built-in defaults. Apply it
+explicitly with `stow --target="$HOME" --no-folding zellij`; the bootstrap script
+does not install or stow Zellij until its Cargo/upstream installation policy is
+specified.
 
 Not every top-level directory is a Stow package. `templates/` contains files
 that are copied into a project only when needed, such as:
