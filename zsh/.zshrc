@@ -32,6 +32,7 @@ setopt NO_BEEP
 # PATH entries that are safe to share across machines.
 path=("/snap/bin" $path)
 [[ -d "${HOME}/bin" ]] && path=("${HOME}/bin" $path)
+[[ -d "${HOME}/.cargo/bin" ]] && path=("${HOME}/.cargo/bin" $path)
 path=("${HOME}/.local/bin" $path)
 typeset -U path
 
