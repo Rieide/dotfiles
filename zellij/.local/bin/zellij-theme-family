@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+usage() {
+  printf 'Usage: %s {kanagawa|deepseek}\n' "${0##*/}" >&2
+  exit 2
+}
+
+[[ $# -eq 1 ]] || usage
+family="$1"
+case "${family}" in
+  kanagawa|deepseek) ;;
+  *) usage ;;
+esac
+
+state_dir="${XDG_STATE_HOME:-${HOME}/.local/state}/zellij"
+state_file="${state_dir}/theme-family"
+umask 077
+mkdir -p "${state_dir}"
+tmp_file="$(mktemp "${state_file}.tmp.XXXXXX")"
+trap 'rm -f -- "${tmp_file}"' EXIT
+
+printf '%s\n' "${family}" >"${tmp_file}"
+mv -- "${tmp_file}" "${state_file}"
+printf 'Zellij theme family for new sessions: %s\n' "${family}"

@@ -1,0 +1,15 @@
+themes {
+    kanagawa-light {
+        fg 84 84 100
+        bg 242 236 188
+        black 67 67 108
+        red 184 50 70
+        green 83 107 61
+        yellow 107 100 47
+        blue 77 105 155
+        magenta 98 76 131
+        cyan 61 113 128
+        white 255 255 255
+        orange 143 82 0
+    }
+}

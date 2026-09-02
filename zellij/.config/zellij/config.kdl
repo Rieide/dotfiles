@@ -1,1 +1,122 @@
-// Shared Zellij settings live here; machine-local settings stay outside this repository.
+// Shared Zellij settings; machine-local state stays outside this repository.
+// The zellij wrapper appends the selected theme family for each new session.
+
+default_mode "locked"
+mouse_mode true
+pane_frames true
+pane_frame_style "full"
+visual_bell true
+scroll_buffer_size 50000
+copy_on_select true
+session_serialization true
+serialize_pane_viewport true
+scrollback_lines_to_serialize 50000
+serialization_interval 600
+
+keybinds {
+    shared_except "tmux" {
+        bind "Ctrl a" { SwitchToMode "tmux"; }
+    }
+
+    // tmux is a built-in Zellij mode, so keep its inherited actions explicit.
+    tmux {
+        bind "\\" { NewPane "right"; SwitchToMode "locked"; }
+        bind "-" { NewPane "down"; SwitchToMode "locked"; }
+        bind "c" { NewTab; SwitchToMode "locked"; }
+        bind "w" {
+            LaunchOrFocusPlugin "session-manager" {
+                floating true
+                move_to_focused_tab true
+            }
+            SwitchToMode "locked"
+        }
+        bind "h" { MoveFocus "left"; SwitchToMode "locked"; }
+        bind "j" { MoveFocus "down"; SwitchToMode "locked"; }
+        bind "k" { MoveFocus "up"; SwitchToMode "locked"; }
+        bind "l" { MoveFocus "right"; SwitchToMode "locked"; }
+        bind "H" { Resize "Decrease left"; SwitchToMode "locked"; }
+        bind "J" { Resize "Decrease down"; SwitchToMode "locked"; }
+        bind "K" { Resize "Decrease up"; SwitchToMode "locked"; }
+        bind "L" { Resize "Decrease right"; SwitchToMode "locked"; }
+        bind "n" { GoToNextTab; SwitchToMode "locked"; }
+        bind "p" { GoToPreviousTab; SwitchToMode "locked"; }
+        bind "tab" { ToggleTab; SwitchToMode "locked"; }
+        bind "1" { GoToTab 1; SwitchToMode "locked"; }
+        bind "2" { GoToTab 2; SwitchToMode "locked"; }
+        bind "3" { GoToTab 3; SwitchToMode "locked"; }
+        bind "4" { GoToTab 4; SwitchToMode "locked"; }
+        bind "5" { GoToTab 5; SwitchToMode "locked"; }
+        bind "6" { GoToTab 6; SwitchToMode "locked"; }
+        bind "7" { GoToTab 7; SwitchToMode "locked"; }
+        bind "8" { GoToTab 8; SwitchToMode "locked"; }
+        bind "9" { GoToTab 9; SwitchToMode "locked"; }
+        bind "0" { GoToTab 10; SwitchToMode "locked"; }
+        bind "z" { ToggleFocusFullscreen; SwitchToMode "locked"; }
+        bind "S" { ToggleActiveSyncTab; SwitchToMode "locked"; }
+        bind "[" { SwitchToMode "scroll"; }
+        bind "g" {
+            Run "lazygit" {
+                floating true
+                close_on_exit true
+            }
+            SwitchToMode "locked"
+        }
+        bind "Ctrl p" {
+            Run "zellij-scratch-shell" {
+                floating true
+                close_on_exit true
+            }
+            SwitchToMode "locked"
+        }
+        bind "Ctrl f" {
+            Run "zellij-session-picker" {
+                floating true
+                close_on_exit true
+            }
+            SwitchToMode "locked"
+        }
+        bind "Ctrl s" {
+            Run "zellij action save-session" {
+                floating true
+                close_on_exit true
+            }
+            SwitchToMode "locked"
+        }
+        bind "Ctrl a" { Write 2; SwitchToMode "locked"; }
+        bind "space" { NextSwapLayout; SwitchToMode "locked"; }
+        bind "\"" { NewPane "down"; SwitchToMode "locked"; }
+        bind "%" { NewPane "right"; SwitchToMode "locked"; }
+        bind "," { SwitchToMode "renametab"; }
+        bind "o" { FocusNextPane; SwitchToMode "locked"; }
+        bind "x" { CloseFocus; SwitchToMode "locked"; }
+        bind "&" { CloseTab; SwitchToMode "locked"; }
+        bind "d" { Detach; }
+        bind "Ctrl b" { Write 2; SwitchToMode "locked"; }
+        bind "Esc" { SwitchToMode "locked"; }
+    }
+}
+
+plugins {
+    about location="zellij:about"
+    compact-bar location="zellij:compact-bar"
+    configuration location="zellij:configuration"
+    filepicker location="zellij:strider" {
+        cwd "/"
+    }
+    plugin-manager location="zellij:plugin-manager"
+    session-manager location="zellij:session-manager"
+    status-bar location="zellij:status-bar"
+    strider location="zellij:strider"
+    tab-bar location="zellij:tab-bar"
+    welcome-screen location="zellij:session-manager" {
+        welcome_screen true
+    }
+}
+
+load_plugins {
+    zellij:link
+}
+
+web_client {
+    font "monospace"
+}

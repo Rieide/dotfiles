@@ -1,0 +1,15 @@
+themes {
+    deepseek-light {
+        fg 24 59 86
+        bg 247 249 252
+        black 16 42 67
+        red 196 61 75
+        green 68 101 157
+        yellow 148 98 0
+        blue 65 118 230
+        magenta 69 92 145
+        cyan 35 113 171
+        white 255 255 255
+        orange 217 119 6
+    }
+}

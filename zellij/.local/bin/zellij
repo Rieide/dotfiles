@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+wrapper_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+path_without_wrapper=""
+old_ifs="${IFS}"
+IFS=:
+read -r -a path_entries <<<"${PATH:-}"
+IFS="${old_ifs}"
+for path_entry in "${path_entries[@]}"; do
+  [[ "${path_entry}" == "${wrapper_dir}" ]] && continue
+  if [[ -z "${path_without_wrapper}" ]]; then
+    path_without_wrapper="${path_entry}"
+  else
+    path_without_wrapper="${path_without_wrapper}:${path_entry}"
+  fi
+done
+
+real_zellij="$(PATH="${path_without_wrapper}" command -v zellij || true)"
+if [[ -z "${real_zellij}" ]]; then
+  printf 'zellij: real executable not found outside %s\n' "${wrapper_dir}" >&2
+  exit 127
+fi
+
+for arg in "$@"; do
+  case "${arg}" in
+    --clean|-c|--config|--config=*)
+      exec "${real_zellij}" "$@"
+      ;;
+  esac
+done
+
+config_dir="${XDG_CONFIG_HOME:-${HOME}/.config}/zellij"
+base_config="${config_dir}/config.kdl"
+if [[ ! -f "${base_config}" ]]; then
+  exec "${real_zellij}" "$@"
+fi
+
+state_dir="${XDG_STATE_HOME:-${HOME}/.local/state}/zellij"
+state_file="${state_dir}/theme-family"
+family="kanagawa"
+if [[ -f "${state_file}" ]]; then
+  IFS= read -r family <"${state_file}"
+fi
+
+case "${family}" in
+  kanagawa)
+    dark_theme="kanagawa-dark"
+    light_theme="kanagawa-light"
+    ;;
+  deepseek)
+    dark_theme="deepseek-dark"
+    light_theme="deepseek-light"
+    ;;
+  *)
+    printf 'zellij: invalid theme family in %s: %s\n' "${state_file}" "${family}" >&2
+    exit 2
+    ;;
+esac
+
+copy_command=""
+if [[ -n "${WAYLAND_DISPLAY:-}" && -n "$(command -v wl-copy 2>/dev/null || true)" ]]; then
+  copy_command="zellij-copy"
+elif [[ -n "${DISPLAY:-}" && -n "$(command -v xclip 2>/dev/null || true)" ]]; then
+  copy_command="zellij-copy"
+fi
+
+umask 077
+mkdir -p "${state_dir}"
+runtime_config="${state_dir}/runtime-config.kdl"
+tmp_file="$(mktemp "${runtime_config}.tmp.XXXXXX")"
+trap 'rm -f -- "${tmp_file}"' EXIT
+
+cat "${base_config}" >"${tmp_file}"
+printf '\ntheme "%s"\ntheme_dark "%s"\ntheme_light "%s"\n' \
+  "${dark_theme}" "${dark_theme}" "${light_theme}" >>"${tmp_file}"
+if [[ -n "${copy_command}" ]]; then
+  printf 'copy_command "%s"\n' "${copy_command}" >>"${tmp_file}"
+fi
+mv -- "${tmp_file}" "${runtime_config}"
+
+exec "${real_zellij}" --config "${runtime_config}" "$@"

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+clipboard_file="$(mktemp "${TMPDIR:-/tmp}/zellij-clipboard.XXXXXX")"
+trap 'rm -f -- "${clipboard_file}"' EXIT
+cat >"${clipboard_file}"
+
+if [[ -n "${WAYLAND_DISPLAY:-}" ]] && command -v wl-copy >/dev/null 2>&1; then
+  wl-copy <"${clipboard_file}" 2>/dev/null && exit 0
+fi
+
+if [[ -n "${DISPLAY:-}" ]] && command -v xclip >/dev/null 2>&1; then
+  xclip -selection clipboard -in <"${clipboard_file}" 2>/dev/null && exit 0
+fi
+
+printf 'zellij-copy: no working Wayland or X11 clipboard provider is available\n' >&2
+exit 1

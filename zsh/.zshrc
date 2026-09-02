@@ -97,3 +97,5 @@ fi
 # variables aligned with GNOME's current system proxy before each command.
 [[ -r "${HOME}/.config/zsh/system-proxy.zsh" ]] && \
   source "${HOME}/.config/zsh/system-proxy.zsh"
+[[ -r "${HOME}/.config/zsh/zellij-navigation.zsh" ]] && \
+  source "${HOME}/.config/zsh/zellij-navigation.zsh"

@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+command -v fzf >/dev/null 2>&1 || {
+  printf 'zellij-session-picker: fzf is required\n' >&2
+  exit 127
+}
+
+session_lines=()
+while IFS= read -r session_name; do
+  [[ -n "${session_name}" ]] || continue
+  session_lines+=("session"$'\t'"${session_name}")
+done < <(zellij list-sessions --short 2>/dev/null || true)
+
+declare -A seen_directories=()
+directory_lines=()
+add_directory() {
+  local directory="$1"
+  [[ -d "${directory}" ]] || return 0
+  [[ -n "${seen_directories[${directory}]:-}" ]] && return 0
+  seen_directories["${directory}"]=1
+  directory_lines+=("directory"$'\t'"${directory}")
+}
+
+add_directory "$PWD"
+if command -v zoxide >/dev/null 2>&1; then
+  while IFS= read -r directory; do
+    add_directory "$directory"
+  done < <(zoxide query -l 2>/dev/null || true)
+fi
+
+entries=("${session_lines[@]}" "${directory_lines[@]}")
+((${#entries[@]} > 0)) || exit 0
+
+selected="$(printf '%s\n' "${entries[@]}" | fzf \
+  --border \
+  --delimiter=$'\t' \
+  --height=80% \
+  --layout=reverse \
+  --prompt='Zellij> ' \
+  --with-shell='/bin/sh -c' \
+  --with-nth=2.. || true)"
+[[ -n "${selected}" ]] || exit 0
+
+kind="${selected%%$'\t'*}"
+value="${selected#*$'\t'}"
+
+case "${kind}" in
+  session)
+    exec zellij action switch-session "${value}"
+    ;;
+  directory)
+    session_name="$(basename -- "${value}")"
+    [[ -n "${session_name}" && "${session_name}" != "/" ]] || session_name=root
+    session_name="${session_name//[^[:alnum:]_-]/-}"
+    session_name="zellij-${session_name}-$(printf '%s' "${value}" | sha256sum | cut -c1-8)"
+    if ! zellij list-sessions --short 2>/dev/null | grep -Fqx -- "${session_name}"; then
+      (
+        cd -- "${value}"
+        zellij attach --create-background "${session_name}"
+      )
+    fi
+    exec zellij action switch-session "${session_name}"
+    ;;
+  *)
+    printf 'zellij-session-picker: invalid selection\n' >&2
+    exit 2
+    ;;
+esac

@@ -18,10 +18,24 @@ local function tmux_is_zoomed()
   return vim.v.shell_error == 0 and vim.trim(output) == '1'
 end
 
-local function navigate(command, tmux_direction)
+local function navigate(nvim_command, tmux_command, tmux_direction, zellij_direction)
   return function()
     local previous_window = vim.api.nvim_get_current_win()
-    vim.cmd(command)
+
+    if vim.env.ZELLIJ then
+      vim.cmd(nvim_command)
+      if vim.api.nvim_get_current_win() ~= previous_window then
+        return
+      end
+
+      vim.fn.system { 'zellij', 'action', 'move-focus', zellij_direction }
+      if vim.v.shell_error ~= 0 then
+        vim.notify('Zellij focus navigation failed', vim.log.levels.ERROR)
+      end
+      return
+    end
+
+    vim.cmd(vim.env.TMUX and tmux_command or nvim_command)
     if vim.api.nvim_get_current_win() ~= previous_window or not tmux_is_zoomed() then
       return
     end
@@ -52,9 +66,25 @@ return {
     vim.g.tmux_navigator_save_on_switch = 0
   end,
   keys = {
-    { '<C-h>', navigate('TmuxNavigateLeft', 'L'), desc = 'Move focus left across Neovim/tmux' },
-    { '<C-j>', navigate('TmuxNavigateDown', 'D'), desc = 'Move focus down across Neovim/tmux' },
-    { '<C-k>', navigate('TmuxNavigateUp', 'U'), desc = 'Move focus up across Neovim/tmux' },
-    { '<C-l>', navigate('TmuxNavigateRight', 'R'), desc = 'Move focus right across Neovim/tmux' },
+    {
+      '<C-h>',
+      navigate('wincmd h', 'TmuxNavigateLeft', 'L', 'left'),
+      desc = 'Move focus left across Neovim/multiplexer',
+    },
+    {
+      '<C-j>',
+      navigate('wincmd j', 'TmuxNavigateDown', 'D', 'down'),
+      desc = 'Move focus down across Neovim/multiplexer',
+    },
+    {
+      '<C-k>',
+      navigate('wincmd k', 'TmuxNavigateUp', 'U', 'up'),
+      desc = 'Move focus up across Neovim/multiplexer',
+    },
+    {
+      '<C-l>',
+      navigate('wincmd l', 'TmuxNavigateRight', 'R', 'right'),
+      desc = 'Move focus right across Neovim/multiplexer',
+    },
   },
 }

@@ -55,9 +55,21 @@ tmux/
         └── tmux.conf
 
 zellij/
-└── .config/
-    └── zellij/
-        └── config.kdl
+├── .config/
+│   └── zellij/
+│       ├── config.kdl
+│       └── themes/
+│           ├── kanagawa-dark.kdl
+│           ├── kanagawa-light.kdl
+│           ├── deepseek-dark.kdl
+│           └── deepseek-light.kdl
+└── .local/
+    └── bin/
+        ├── zellij
+        ├── zellij-copy
+        ├── zellij-scratch-shell
+        ├── zellij-session-picker
+        └── zellij-theme-family
 
 starship/
 └── .config/
@@ -75,10 +87,32 @@ nvim/
 Shared configuration belongs in the stowed package. Local configuration belongs
 outside the repository.
 
-The Zellij package currently preserves Zellij's built-in defaults. Apply it
-explicitly with `stow --target="$HOME" --no-folding zellij`; the bootstrap script
-does not install or stow Zellij until its Cargo/upstream installation policy is
-specified.
+The Zellij package provides four themes: `kanagawa-dark`, `kanagawa-light`,
+`deepseek-dark`, and `deepseek-light`. The `zellij` wrapper selects the active
+family for each new session, while the terminal's reported color scheme selects
+the family's dark or light variant. Choose the family with:
+
+```sh
+zellij-theme-family kanagawa
+zellij-theme-family deepseek
+```
+
+The selected family is stored in `~/.local/state/zellij/theme-family`. Existing
+sessions are unchanged. The wrapper keeps generated runtime configuration in
+that same local state directory and never edits the Stow-managed configuration.
+The active repository configuration uses Locked mode by default, retains Zellij's
+native modes, and adds a Ctrl-a Prefix mode for tmux-oriented workflows. See
+`zellij/README.md` for the complete binding and migration reference.
+
+The package is not installed by the bootstrap script because Zellij is currently
+installed from Cargo. Once Zellij is installed, apply the package explicitly:
+
+```sh
+stow --target="$HOME" zellij
+```
+
+The package replaces sesh only for Zellij's project/session picker. The tmux
+configuration and its sesh popup remain available as a fallback.
 
 Not every top-level directory is a Stow package. `templates/` contains files
 that are copied into a project only when needed, such as:
