@@ -5,11 +5,13 @@ new sessions; existing sessions keep their current configuration until restarted
 
 ## Install and ownership
 
-Zellij is installed from Cargo rather than by `install.sh`. After the binary is
-available, apply this package from the repository root:
+Zellij is installed by `install.sh` through Cargo. The installer keeps the
+version at or above the tracked minimum before applying this package from the
+repository root:
 
 ```sh
-stow --target="$HOME" zellij
+./install.sh --install-only
+./install.sh --stow-only
 ```
 
 The active `~/.config/zellij/config.kdl` is the Stow link to this package. The

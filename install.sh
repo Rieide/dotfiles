@@ -38,6 +38,7 @@ APT_REQUIRED_PACKAGES=(
   stow
   wget
   zsh
+  cargo
 )
 
 PREFERRED_ITEMS=(
@@ -59,6 +60,7 @@ PREFERRED_ITEMS=(
   starship
   zoxide
   sesh
+  zellij
 )
 
 STOW_PACKAGES=(
@@ -67,6 +69,7 @@ STOW_PACKAGES=(
   nvim
   starship
   tmux
+  zellij
   zsh
 )
 
@@ -89,6 +92,7 @@ declare -A ITEM_KIND=(
   [starship]="remote"
   [zoxide]="remote"
   [sesh]="pinned-release"
+  [zellij]="cargo"
 )
 
 declare -A ITEM_PACKAGE=(
@@ -110,6 +114,7 @@ declare -A ITEM_PACKAGE=(
   [starship]="starship"
   [zoxide]="zoxide"
   [sesh]="sesh"
+  [zellij]="zellij"
 )
 
 declare -A ITEM_COMMAND=(
@@ -131,6 +136,7 @@ declare -A ITEM_COMMAND=(
   [starship]="starship"
   [zoxide]="zoxide"
   [sesh]="sesh"
+  [zellij]="zellij"
 )
 
 # Only constraints justified by the tracked configuration belong here.
@@ -138,6 +144,7 @@ declare -A ITEM_MIN_VERSION=(
   [git]="2.35"
   [nvim]="0.11"
   [tmux]="3.3"
+  [zellij]="0.45.1"
 )
 
 # Empty means any existing source is accepted. Installation still follows
@@ -145,12 +152,14 @@ declare -A ITEM_MIN_VERSION=(
 # shadowing /snap/bin/nvim.
 declare -A ITEM_ALLOWED_SOURCES=(
   [nvim]="snap"
+  [zellij]="cargo local"
 )
 
 declare -A ITEM_VERSION_ARGS=(
   [tmux]="-V"
   [gitleaks]="version"
   [sesh]="--version"
+  [zellij]="--version"
 )
 
 # Pinned tmux tooling. Upgrades are deliberate: change the version or commit
@@ -338,6 +347,9 @@ detect_command_source() {
     "${HOME}"/.local/bin/*)
       printf '%s\n' local
       ;;
+    "${HOME}"/.cargo/bin/*)
+      printf '%s\n' cargo
+      ;;
     "${HOME}"/miniconda3/*|*/conda/*)
       printf '%s\n' conda
       ;;
@@ -517,6 +529,13 @@ inspect_required_package() {
   local package="$1"
   local version
 
+  if [[ "${package}" == "cargo" ]] && command -v cargo >/dev/null 2>&1; then
+    version="$(cargo --version 2>/dev/null || true)"
+    ITEM_STATE["required:${package}"]="satisfied"
+    set_result "required:${package}" "SKIPPED" "${version:-cargo is available}"
+    return 0
+  fi
+
   version="$(installed_deb_version "${package}")"
   if [[ -n "${version}" ]]; then
     ITEM_STATE["required:${package}"]="satisfied"
@@ -562,6 +581,9 @@ inspect_preferred_item() {
       if [[ "${kind}" == "snap" && "${source}" == "apt" ]]; then
         ITEM_STATE["tool:${item}"]="needs-install"
         set_result "tool:${item}" "PENDING" "${detail}; apt provider is deprecated; Snap installation required"
+      elif [[ "${kind}" == "cargo" ]]; then
+        ITEM_STATE["tool:${item}"]="needs-install"
+        set_result "tool:${item}" "PENDING" "${detail}; Cargo installation required"
       else
         ITEM_STATE["tool:${item}"]="failed"
         set_result "tool:${item}" "FAILED" "${detail}; allowed source: ${allowed_sources}; manual action required"
@@ -584,6 +606,10 @@ inspect_preferred_item() {
         snap)
           ITEM_STATE["tool:${item}"]="needs-refresh"
           set_result "tool:${item}" "PENDING" "${detail}; minimum ${minimum}; Snap refresh required"
+          ;;
+        cargo)
+          ITEM_STATE["tool:${item}"]="needs-install"
+          set_result "tool:${item}" "PENDING" "${detail}; minimum ${minimum}; Cargo reinstall required"
           ;;
         *)
           ITEM_STATE["tool:${item}"]="failed"
@@ -777,6 +803,49 @@ install_preferred_snap_items() {
     else
       ITEM_STATE["${key}"]="failed"
       set_result "${key}" "FAILED" "Snap ${action} command failed"
+    fi
+  done
+}
+
+install_cargo_items() {
+  log "Installing eligible preferred Cargo tools"
+
+  local item
+  local key
+  local minimum
+  for item in "${PREFERRED_ITEMS[@]}"; do
+    [[ "${ITEM_KIND[${item}]}" == "cargo" ]] || continue
+    key="tool:${item}"
+    [[ "${ITEM_STATE[${key}]}" == "needs-install" ]] || continue
+
+    if [[ "${SKIP_REMOTE}" -eq 1 ]]; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "remote installation disabled; manual Cargo installation required"
+      continue
+    fi
+
+    minimum="${ITEM_MIN_VERSION[${item}]:-}"
+    if ! command -v cargo >/dev/null 2>&1; then
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "cargo is unavailable; install Cargo before retrying"
+      continue
+    fi
+
+    if run cargo install --locked --force --version "${minimum}" "${item}"; then
+      if [[ "${DRY_RUN}" -eq 1 ]]; then
+        ITEM_STATE["${key}"]="planned"
+        set_result "${key}" "PLANNED" "would install ${item} ${minimum} from crates.io"
+        continue
+      fi
+      inspect_preferred_item "${item}"
+      if [[ "${ITEM_STATE[${key}]}" == "satisfied" ]]; then
+        SUMMARY_STATUS["${key}"]="INSTALLED"
+      else
+        set_result "${key}" "FAILED" "Cargo installation completed but version/source verification failed"
+      fi
+    else
+      ITEM_STATE["${key}"]="failed"
+      set_result "${key}" "FAILED" "Cargo installation command failed"
     fi
   done
 }
@@ -1068,7 +1137,7 @@ stow_state_key_for_package() {
     zsh)
       printf '%s\n' "required:zsh"
       ;;
-    git|lazygit|nvim|starship|tmux)
+    git|lazygit|nvim|starship|tmux|zellij)
       printf 'tool:%s\n' "$1"
       ;;
     *)
@@ -1236,6 +1305,7 @@ main() {
     install_preferred_apt_items
     install_preferred_snap_items
     install_remote_items
+    install_cargo_items
     install_sesh
     install_tmux_plugins
   fi

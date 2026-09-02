@@ -104,12 +104,15 @@ The active repository configuration uses Locked mode by default, retains Zellij'
 native modes, and adds a Ctrl-a Prefix mode for tmux-oriented workflows. See
 `zellij/README.md` for the complete binding and migration reference.
 
-The package is not installed by the bootstrap script because Zellij is currently
-installed from Cargo. Once Zellij is installed, apply the package explicitly:
+The bootstrap installs Zellij through Cargo and applies the package with Stow:
 
 ```sh
-stow --target="$HOME" zellij
+./install.sh --install-only
+./install.sh --stow-only
 ```
+
+If Zellij is already installed, `--stow-only` only applies the configuration
+package after the tool inventory passes.
 
 The package replaces sesh only for Zellij's project/session picker. The tmux
 configuration and its sesh popup remain available as a fallback.
