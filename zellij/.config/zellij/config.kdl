@@ -97,6 +97,10 @@ keybinds {
 }
 
 plugins {
+    // The indexed tab bar keeps the native bottom status-bar and which-key hints.
+    tab-bar location="https://github.com/ivoronin/zellij-tab-bar-indexed/releases/latest/download/tab-bar.wasm" {
+        show_tab_indices true
+    }
     about location="zellij:about"
     compact-bar location="zellij:compact-bar"
     configuration location="zellij:configuration"
