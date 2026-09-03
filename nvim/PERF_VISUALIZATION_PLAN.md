@@ -330,11 +330,11 @@ win = {
   height = 0.94,
   border = 'rounded',
   backdrop = 60,
-  wo = { winblend = 30 },
+  wo = { winblend = 10 },
 }
 ```
 
-`winblend = 30` 表示浮窗约 70% 不透明，与当前 Telescope 风格一致；普通
+`winblend = 10` 表示浮窗约 90% 不透明，与当前 Telescope 风格一致；普通
 split 侧栏仍是不透明窗口。`backdrop` 是后方遮罩，不是 panel opacity。两者
 必须分别测试。`winblend` 是 UI-dependent 的伪透明，因此需在 TUI、tmux 和
 使用中的主题上实测可读性；如果火焰图文字对比不足，允许单独降到 `15` 或
@@ -467,7 +467,7 @@ nvim/
       仍可独立打开 flamelens，而不会产生空白但看似成功的源码 overlay。
 - [ ] 确认 PerfAnno 公开的 inclusive 数据和只读热点 API，并判断自有 adapter
       是否能可靠增加 self；记录 API 决策。
-- [ ] 验证 flamelens 在 tmux、当前主题和 70% 不透明浮窗中的可读性与 resize。
+- [ ] 验证 flamelens 在 tmux、当前主题和 90% 不透明浮窗中的可读性与 resize。
 - [ ] 确定 Ubuntu 26.04/WSL 的 `perf` 包与 flamelens 可审计安装来源。
 
 退出条件：能把一个已知热点映射到 fixture 的预期源码行，且完整火焰图能从
@@ -520,7 +520,7 @@ panel 生命周期。
 - [ ] 确认并实现 `flamelens`/collapse 工具的固定安装策略。
 - [ ] 从共享 session 生成带 fingerprint 的 folded 文件。
 - [ ] 通过 Snacks terminal 以 argv 数组启动 flamelens。
-- [ ] 应用 96% x 94%、圆角边框、backdrop 和 `winblend=30`。
+- [ ] 应用 96% x 94%、圆角边框、backdrop 和 `winblend=10`。
 - [ ] 实现缺工具、生成失败、空数据和 stale 标题。
 - [ ] 验证搜索、zoom、退出、resize、tmux 导航和 Neovim 焦点恢复。
 - [ ] 分别验证 term-mode `q`、normal-mode hide、显式 close/clear 和进程异常；
@@ -607,7 +607,7 @@ target 的 Stow dry-run 不会规划链接计划或测试文件。
       阈值、diagnostic 共存和颜色在所有启用主题下可读。
 - [ ] 侧栏在当前文件和 workspace 范围正确排序，跳转和详情工作。
 - [ ] Blame/Perf 面板互斥，但 Neo-tree、Trouble 和普通 split 不被擅自关闭。
-- [ ] 全屏浮窗默认约 70% 不透明、可 resize、可搜索/zoom，并能干净退出。
+- [ ] 全屏浮窗默认约 90% 不透明、可 resize、可搜索/zoom，并能干净退出。
 - [ ] 修改源码或切换不匹配构建后视图显示 stale，不保留有效外观的旧数字。
 - [ ] 路径和命令参数不经过 shell 拼接；插件不自动提权或修改系统安全配置。
 - [ ] 缓存和 profile 数据不进入 Git，不在工作树或 HOME 根目录留下垃圾。
@@ -648,7 +648,7 @@ docs(nvim): document profiling practice and limitations
 | `perf` provider | Ubuntu 内核匹配包 | U26/WSL 实机验证 |
 | flamelens provider | 固定二进制优先 | release asset、checksum、架构 |
 | 调用栈方式 | 文档同时支持 DWARF/fp | 真实 workload 的准确性和开销 |
-| 浮窗透明度 | `winblend=30` | tmux/主题下的可读性 |
+| 浮窗透明度 | `winblend=10` | tmux/主题下的可读性 |
 | live profiling | 第一版关闭 | 离线流程稳定后再单独评估 |
 
 这些问题是实施阶段的验证闸门，不授权用未经审计的下载方式、私有插件 API 或

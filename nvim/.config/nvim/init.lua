@@ -414,7 +414,7 @@ require('lazy').setup({
         title = true,
         title_pos = 'center',
         wo = {
-          winblend = 30,
+          winblend = 10,
         },
       },
       layout = {
