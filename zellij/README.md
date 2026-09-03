@@ -122,8 +122,17 @@ Set `MULTIPLEXER_SYSTEM_PROXY_SYNC=0` in `~/.zshrc.local` to disable it. The
 older `TMUX_SYSTEM_PROXY_SYNC` variable remains accepted for existing tmux-only
 local overrides.
 
-For shell panes in Zellij, `Ctrl-h/j/k/l` moves focus only on an empty command
-line; on a non-empty command line the normal zsh editing widgets are preserved.
+In Locked mode, `vim-zellij-navigator` handles `Ctrl-h/j/k/l` before the focused
+application receives the key. It detects Neovim in the focused pane and forwards
+the key so Neovim can move through its own windows; at an editor edge, Neovim's
+mapping calls `zellij action move-focus`. For shell and Codex panes, the plugin
+consumes the key and moves Zellij focus directly. This mirrors tmux's
+process-aware `is_vim` bindings without switching Zellij modes on focus events.
+In Normal-mode shell panes, the zsh widgets retain their existing empty-line
+navigation behavior. Zellij's `Ctrl-g` Locked/Normal toggle is unchanged.
+The navigator is preloaded in the background when a session starts, avoiding a
+race on the first navigation key. A fresh installation opens Zellij's permission
+prompt once; grant it before using the configured bindings.
 
 ## Differences from tmux
 

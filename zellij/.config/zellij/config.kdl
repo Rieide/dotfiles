@@ -18,6 +18,43 @@ keybinds {
         bind "Ctrl a" { SwitchToMode "tmux"; }
     }
 
+    // Match tmux's process-aware navigation: forward into Neovim, otherwise
+    // consume the key and move between Zellij panes.
+    locked {
+        bind "Ctrl h" {
+            MessagePlugin "https://github.com/hiasr/vim-zellij-navigator/releases/download/0.3.0/vim-zellij-navigator.wasm" {
+                name "move_focus"
+                payload "left"
+                move_mod "ctrl"
+                use_arrow_keys "false"
+            }
+        }
+        bind "Ctrl j" {
+            MessagePlugin "https://github.com/hiasr/vim-zellij-navigator/releases/download/0.3.0/vim-zellij-navigator.wasm" {
+                name "move_focus"
+                payload "down"
+                move_mod "ctrl"
+                use_arrow_keys "false"
+            }
+        }
+        bind "Ctrl k" {
+            MessagePlugin "https://github.com/hiasr/vim-zellij-navigator/releases/download/0.3.0/vim-zellij-navigator.wasm" {
+                name "move_focus"
+                payload "up"
+                move_mod "ctrl"
+                use_arrow_keys "false"
+            }
+        }
+        bind "Ctrl l" {
+            MessagePlugin "https://github.com/hiasr/vim-zellij-navigator/releases/download/0.3.0/vim-zellij-navigator.wasm" {
+                name "move_focus"
+                payload "right"
+                move_mod "ctrl"
+                use_arrow_keys "false"
+            }
+        }
+    }
+
     // tmux is a built-in Zellij mode, so keep its inherited actions explicit.
     tmux {
         bind "\\" { NewPane "right"; SwitchToMode "locked"; }
@@ -97,6 +134,10 @@ keybinds {
 }
 
 plugins {
+    vim-zellij-navigator location="https://github.com/hiasr/vim-zellij-navigator/releases/download/0.3.0/vim-zellij-navigator.wasm" {
+        move_mod "ctrl"
+        use_arrow_keys "false"
+    }
     // The indexed tab bar keeps the native bottom status-bar and which-key hints.
     tab-bar location="https://github.com/ivoronin/zellij-tab-bar-indexed/releases/latest/download/tab-bar.wasm" {
         show_tab_indices true
@@ -118,6 +159,7 @@ plugins {
 }
 
 load_plugins {
+    vim-zellij-navigator
     zellij:link
 }
 
