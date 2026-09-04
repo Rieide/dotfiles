@@ -100,6 +100,8 @@ zellij-theme-family deepseek
 The selected family is stored in `~/.local/state/zellij/theme-family`. Existing
 sessions are unchanged. The wrapper keeps generated runtime configuration in
 that same local state directory and never edits the Stow-managed configuration.
+Outside a session, running bare `zellij` reconnects to the session recorded in
+`~/.local/state/zellij/last-session` instead of creating a new random session.
 The top tab bar uses plain numeric labels such as `1 nvim`, while the bottom bar
 remains Zellij's native status bar with its mode-specific which-key hints. See
 `zellij/README.md` for the complete binding and migration reference.

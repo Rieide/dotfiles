@@ -22,10 +22,19 @@ if [[ -z "${real_zellij}" ]]; then
   exit 127
 fi
 
+seen_subcommand=false
 for arg in "$@"; do
   case "${arg}" in
-    --clean|-c|--config|--config=*)
+    --clean|--config|--config=*)
       exec "${real_zellij}" "$@"
+      ;;
+    -c)
+      if [[ "${seen_subcommand}" == false ]]; then
+        exec "${real_zellij}" "$@"
+      fi
+      ;;
+    options|setup|web|action|ac|list-sessions|ls|list-aliases|la|attach|a|watch|w|kill-session|k|delete-session|d|kill-all-sessions|ka|delete-all-sessions|da|run|r|plugin|p|edit|e|pipe|subscribe|help)
+      seen_subcommand=true
       ;;
   esac
 done
@@ -37,10 +46,11 @@ if [[ ! -f "${base_config}" ]]; then
 fi
 
 state_dir="${XDG_STATE_HOME:-${HOME}/.local/state}/zellij"
-state_file="${state_dir}/theme-family"
+theme_state_file="${state_dir}/theme-family"
+last_session_file="${state_dir}/last-session"
 family="kanagawa"
-if [[ -f "${state_file}" ]]; then
-  IFS= read -r family <"${state_file}"
+if [[ -f "${theme_state_file}" ]]; then
+  IFS= read -r family <"${theme_state_file}"
 fi
 
 case "${family}" in
@@ -53,7 +63,7 @@ case "${family}" in
     light_theme="deepseek-light"
     ;;
   *)
-    printf 'zellij: invalid theme family in %s: %s\n' "${state_file}" "${family}" >&2
+    printf 'zellij: invalid theme family in %s: %s\n' "${theme_state_file}" "${family}" >&2
     exit 2
     ;;
 esac
@@ -78,5 +88,117 @@ if [[ -n "${copy_command}" ]]; then
   printf 'copy_command "%s"\n' "${copy_command}" >>"${tmp_file}"
 fi
 mv -- "${tmp_file}" "${runtime_config}"
+
+remember_session() {
+  local session_name="$1"
+  local session_tmp
+  [[ -n "${session_name}" && "${session_name}" != *$'\n'* ]] || return 1
+  session_tmp="$(mktemp "${last_session_file}.tmp.XXXXXX")"
+  if ! printf '%s\n' "${session_name}" >"${session_tmp}"; then
+    rm -f -- "${session_tmp}"
+    return 1
+  fi
+  mv -- "${session_tmp}" "${last_session_file}"
+}
+
+if (($# > 0)) && [[ "$1" == "attach" || "$1" == "a" ]]; then
+  attach_args=("$@")
+  attach_session=""
+  attach_index=1
+  while ((attach_index < ${#attach_args[@]})); do
+    attach_arg="${attach_args[${attach_index}]}"
+    case "${attach_arg}" in
+      --)
+        break
+        ;;
+      --index|-t|--token|--ca-cert)
+        attach_index=$((attach_index + 1))
+        ;;
+      --index=*|--token=*|--ca-cert=*|-*) ;;
+      *)
+        attach_session="${attach_arg}"
+        break
+        ;;
+    esac
+    attach_index=$((attach_index + 1))
+  done
+  if [[ -n "${attach_session}" && "${attach_session}" != http://* && "${attach_session}" != https://* ]]; then
+    remember_session "${attach_session}"
+  fi
+fi
+
+if (($# > 0)); then
+  launch_args=("$@")
+  launch_session=""
+  launch_is_control=false
+  launch_index=0
+  while ((launch_index < ${#launch_args[@]})); do
+    launch_arg="${launch_args[${launch_index}]}"
+    case "${launch_arg}" in
+      action|ac|attach|a|watch|w|list-sessions|ls|list-aliases|la|kill-session|k|delete-session|d|kill-all-sessions|ka|delete-all-sessions|da|run|r|plugin|p|edit|e|pipe|subscribe|options|setup|web|help)
+        launch_is_control=true
+        break
+        ;;
+      -s|--session)
+        launch_index=$((launch_index + 1))
+        if ((launch_index < ${#launch_args[@]})); then
+          launch_session="${launch_args[${launch_index}]}"
+        fi
+        ;;
+      --session=*)
+        launch_session="${launch_arg#*=}"
+        ;;
+    esac
+    launch_index=$((launch_index + 1))
+  done
+  if [[ -n "${launch_session}" && "${launch_is_control}" == false ]]; then
+    remember_session "${launch_session}"
+  fi
+fi
+
+if (($# == 0)) && [[ -z "${ZELLIJ:-}" && -z "${ZELLIJ_SESSION_NAME:-}" ]]; then
+  sessions=()
+  while IFS= read -r session_name; do
+    [[ -n "${session_name}" ]] || continue
+    sessions+=("${session_name}")
+  done < <("${real_zellij}" --config "${runtime_config}" list-sessions --short --no-formatting 2>/dev/null || true)
+
+  last_session=""
+  if [[ -f "${last_session_file}" ]]; then
+    IFS= read -r last_session <"${last_session_file}" || true
+  fi
+  for session_name in "${sessions[@]}"; do
+    if [[ "${session_name}" == "${last_session}" ]]; then
+      exec "${real_zellij}" --config "${runtime_config}" attach "${last_session}"
+    fi
+  done
+
+  case "${#sessions[@]}" in
+    0)
+      last_session="main"
+      remember_session "${last_session}"
+      exec "${real_zellij}" --config "${runtime_config}" attach --create "${last_session}"
+      ;;
+    1)
+      last_session="${sessions[0]}"
+      remember_session "${last_session}"
+      exec "${real_zellij}" --config "${runtime_config}" attach "${last_session}"
+      ;;
+    *)
+      if ! command -v fzf >/dev/null 2>&1; then
+        printf 'zellij: multiple sessions exist and fzf is required to select the session to remember\n' >&2
+        exit 1
+      fi
+      last_session="$(printf '%s\n' "${sessions[@]}" | fzf \
+        --border \
+        --height=80% \
+        --layout=reverse \
+        --prompt='Zellij session> ' || true)"
+      [[ -n "${last_session}" ]] || exit 0
+      remember_session "${last_session}"
+      exec "${real_zellij}" --config "${runtime_config}" attach "${last_session}"
+      ;;
+  esac
+fi
 
 exec "${real_zellij}" --config "${runtime_config}" "$@"

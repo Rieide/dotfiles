@@ -6,6 +6,21 @@ command -v fzf >/dev/null 2>&1 || {
   exit 127
 }
 
+state_dir="${XDG_STATE_HOME:-${HOME}/.local/state}/zellij"
+last_session_file="${state_dir}/last-session"
+remember_session() {
+  local session_name="$1"
+  local session_tmp
+  umask 077
+  mkdir -p "${state_dir}"
+  session_tmp="$(mktemp "${last_session_file}.tmp.XXXXXX")"
+  if ! printf '%s\n' "${session_name}" >"${session_tmp}"; then
+    rm -f -- "${session_tmp}"
+    return 1
+  fi
+  mv -- "${session_tmp}" "${last_session_file}"
+}
+
 session_lines=()
 while IFS= read -r session_name; do
   [[ -n "${session_name}" ]] || continue
@@ -47,6 +62,7 @@ value="${selected#*$'\t'}"
 
 case "${kind}" in
   session)
+    remember_session "${value}"
     exec zellij action switch-session "${value}"
     ;;
   directory)
@@ -60,6 +76,7 @@ case "${kind}" in
         zellij attach --create-background "${session_name}"
       )
     fi
+    remember_session "${session_name}"
     exec zellij action switch-session "${session_name}"
     ;;
   *)

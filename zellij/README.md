@@ -80,6 +80,17 @@ state feedback instead of reproducing tmux's status strings exactly.
 
 ## Sessions and projects
 
+Outside Zellij, running bare `zellij` reconnects to the session stored in
+`~/.local/state/zellij/last-session`. If no remembered session exists, the
+wrapper attaches to the only available session, creates a persistent `main`
+session when none exist, or uses fzf to choose which of multiple sessions to
+remember. Explicit local `attach`/named-session launches and selections made by
+`zellij-session-picker` update the same state file. This also resurrects an
+exited serialized session without automatically running its saved commands.
+Switches made only through Zellij's native session manager cannot be observed by
+the wrapper; use the `Ctrl-a Ctrl-f` picker when the remembered target must
+follow a session switch exactly.
+
 `zellij-session-picker` replaces sesh only in the Zellij workflow. It combines
 active Zellij sessions, the current directory and directories known by zoxide,
 then uses fzf for selection. Existing sessions are switched to directly. A
