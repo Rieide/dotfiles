@@ -6,6 +6,11 @@ on_force_close "detach"
 mouse_mode true
 pane_frames true
 pane_frame_style "full"
+ui {
+    pane_frames {
+        rounded_corners true
+    }
+}
 visual_bell true
 scroll_buffer_size 50000
 copy_on_select true
@@ -139,9 +144,20 @@ plugins {
         move_mod "ctrl"
         use_arrow_keys "false"
     }
-    // The indexed tab bar keeps the native bottom status-bar and which-key hints.
-    tab-bar location="https://github.com/ivoronin/zellij-tab-bar-indexed/releases/latest/download/tab-bar.wasm" {
-        show_tab_indices true
+    // zjstatus renders plain numeric indices while the native bottom
+    // status-bar continues to provide mode-specific which-key hints.
+    tab-bar location="https://github.com/dj95/zjstatus/releases/download/v0.24.0/zjstatus.wasm" {
+        format_left "{tabs}"
+        format_center ""
+        format_right ""
+        format_space ""
+        border_enabled "false"
+        hide_frame_for_single_pane "false"
+        tab_normal "#[fg=white] {index} {name} "
+        tab_active "#[fg=black,bg=blue,bold] {index} {name} "
+        tab_rename "#[fg=black,bg=yellow,bold] {index} {name} "
+        tab_separator ""
+        tab_zero_based_index "false"
     }
     about location="zellij:about"
     compact-bar location="zellij:compact-bar"
@@ -153,7 +169,6 @@ plugins {
     session-manager location="zellij:session-manager"
     status-bar location="zellij:status-bar"
     strider location="zellij:strider"
-    tab-bar location="zellij:tab-bar"
     welcome-screen location="zellij:session-manager" {
         welcome_screen true
     }

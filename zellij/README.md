@@ -36,12 +36,10 @@ The choice is stored in `~/.local/state/zellij/theme-family`. The terminal's
 reported palette selects the dark or light member of the pair. Existing sessions
 are intentionally unchanged.
 
-The top tab bar uses an indexed tab-bar plugin and displays labels such as
-`<1> nvim` and `<2> shell`. The bottom bar remains Zellij's native
-`status-bar`, so its mode-specific which-key hints remain available. `zjstatus`
-is not used because it cannot automatically import Zellij's configured keybind
-list; reproducing those hints would require a separate manually maintained
-configuration or helper plugin.
+The top tab bar uses `zjstatus` only for the tab list and displays plain numeric
+labels such as `1 nvim` and `2 shell`. The bottom bar remains Zellij's native
+`status-bar`, so its mode-specific which-key hints remain available without a
+second manually maintained keybind list.
 
 ## Modes and bindings
 

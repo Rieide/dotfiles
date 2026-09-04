@@ -100,8 +100,8 @@ zellij-theme-family deepseek
 The selected family is stored in `~/.local/state/zellij/theme-family`. Existing
 sessions are unchanged. The wrapper keeps generated runtime configuration in
 that same local state directory and never edits the Stow-managed configuration.
-The top tab bar uses an indexed tab-bar plugin while the bottom bar remains
-Zellij's native status bar with its mode-specific which-key hints. See
+The top tab bar uses plain numeric labels such as `1 nvim`, while the bottom bar
+remains Zellij's native status bar with its mode-specific which-key hints. See
 `zellij/README.md` for the complete binding and migration reference.
 
 The bootstrap installs Zellij through Cargo and applies the package with Stow:
