@@ -2,6 +2,7 @@
 // The zellij wrapper appends the selected theme family for each new session.
 
 default_mode "locked"
+on_force_close "detach"
 mouse_mode true
 pane_frames true
 pane_frame_style "full"
