@@ -17,6 +17,10 @@ return {
     },
     { '<leader>tt', function() Snacks.terminal() end, desc = 'Terminal' },
   },
+  config = function(_, opts)
+    require('snacks').setup(opts)
+    require('custom.scope_line_numbers').setup()
+  end,
   opts = {
     bigfile = { enabled = true },
     indent = {

@@ -18,12 +18,24 @@ Current migration state:
 - lualine owns the statusline and winbar
 - Noice owns message UI while keeping the classic bottom cmdline
 - Snacks is limited to low-conflict modules: bigfile, quickfile, terminal, and
-  indent/chunk scope UI
+  indent/chunk scope UI; a small local decoration provider uses the same scope
+  detector to highlight the matching line numbers
+- `deepseek-wave` is the active colorscheme: Kanagawa Wave's highlight coverage
+  on a true-black, DeepSeek-inspired neutral/blue palette
+- the colorscheme never selects a font face, bold, or italic style and leaves
+  the embedded terminal ANSI palette to the host terminal
 - Conform has format-on-save disabled; use `<leader>cf` for intentional manual
   formatting
 - clangd is configured with compile database warnings for C/C++ buffers
 
 Practice notes for daily Neovim use live in `PRACTICE.md`.
+
+The theme's editable semantic palette lives in
+`lua/custom/themes/deepseek_wave.lua`. It can be reloaded after edits with:
+
+```vim
+:colorscheme deepseek-wave
+```
 
 A proposed profiler workflow covering source heat annotations, a compact
 hotspot sidebar, and a Snacks-hosted flamegraph panel is documented in
