@@ -117,6 +117,10 @@ Session serialization and pane viewport serialization are enabled. Zellij keeps
 seconds. The Prefix save binding requests an immediate serialization. Restored
 sessions keep tabs, pane layout, working directories and supported commands;
 process restoration remains subject to Zellij's own command discovery behavior.
+When command discovery sees Neovim in the foreground, the configured discovery
+hook serializes the user's shell instead. This prevents a resurrected Neovim
+command pane from becoming the pane's root process, where `Ctrl-Z` could stop the
+editor but could not return control to a parent shell.
 
 ## Neovim and proxy integration
 

@@ -18,6 +18,10 @@ session_serialization true
 serialize_pane_viewport true
 scrollback_lines_to_serialize 50000
 serialization_interval 600
+// Interactive editors discovered during serialization must be restored as a
+// shell pane. Otherwise Neovim becomes the pane's root process and Ctrl-z has
+// no parent shell to regain control of the terminal.
+post_command_discovery_hook "command_name=${RESURRECT_COMMAND%% *}; if [ \"${command_name##*/}\" = nvim ]; then printf '%s\\n' \"${SHELL:-/usr/bin/zsh}\"; else printf '%s\\n' \"$RESURRECT_COMMAND\"; fi"
 
 keybinds {
     shared_except "tmux" {
