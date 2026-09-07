@@ -2,11 +2,14 @@ local source = debug.getinfo(1, 'S').source:sub(2)
 local package_root = vim.fs.dirname(vim.fs.dirname(source))
 local config_root = package_root .. '/.config/nvim'
 local kanagawa_root = vim.fn.stdpath 'data' .. '/lazy/kanagawa.nvim'
+local lualine_root = vim.fn.stdpath 'data' .. '/lazy/lualine.nvim'
 
 assert(vim.fn.isdirectory(kanagawa_root) == 1, 'kanagawa.nvim is not installed at ' .. kanagawa_root)
+assert(vim.fn.isdirectory(lualine_root) == 1, 'lualine.nvim is not installed at ' .. lualine_root)
 
 vim.opt.runtimepath:prepend(config_root)
 vim.opt.runtimepath:append(kanagawa_root)
+vim.opt.runtimepath:append(lualine_root)
 vim.cmd.colorscheme 'deepseek-wave'
 
 assert(vim.g.colors_name == 'deepseek-wave', 'deepseek-wave did not become the active colorscheme')
@@ -32,6 +35,21 @@ assert(completion.bg == tonumber('1B1B1C', 16), 'completion menus do not use the
 
 local sidebar = vim.api.nvim_get_hl(0, { name = 'NeoTreeNormal', link = false })
 assert(sidebar.bg == tonumber('0F0F0F', 16), 'the sidebar does not separate from the editor canvas')
+
+local lualine = require 'lualine.themes.auto'
+local mode_colors = {
+  normal = '#5686FE',
+  insert = '#69DB7C',
+  visual = '#B197FC',
+  replace = '#F25A5A',
+  command = '#F7AD31',
+  terminal = '#4DABF7',
+}
+for mode, color in pairs(mode_colors) do
+  assert(lualine[mode].a.bg == color, ('lualine %s mode does not use its semantic accent'):format(mode))
+  assert(lualine[mode].a.fg == '#000000', ('lualine %s mode must remain readable'):format(mode))
+  assert(lualine[mode].a.gui == nil, ('lualine %s mode must not force a font style'):format(mode))
+end
 
 local forbidden = { 'bold', 'italic', 'altfont', 'font' }
 for name, spec in pairs(vim.api.nvim_get_hl(0, { link = true })) do
