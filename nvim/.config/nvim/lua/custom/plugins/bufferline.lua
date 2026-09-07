@@ -48,7 +48,7 @@ return {
       offsets = {
         {
           filetype = 'neo-tree',
-          text = 'Files',
+          text = '',
           text_align = 'left',
           separator = true,
         },

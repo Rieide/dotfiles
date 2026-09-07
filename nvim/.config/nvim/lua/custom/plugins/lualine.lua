@@ -62,6 +62,7 @@ return {
       globalstatus = true,
       disabled_filetypes = {
         statusline = { 'dashboard', 'alpha', 'starter' },
+        winbar = { 'neo-tree' },
       },
     },
     sections = {
