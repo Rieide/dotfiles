@@ -19,7 +19,7 @@ local function update_highlight()
   local normal = vim.api.nvim_get_hl(0, { name = 'LineNr', link = false })
   local color = active.fg or normal.fg or 0x74c0fc
 
-  vim.api.nvim_set_hl(0, 'ScopeLineNr', { fg = brighten(color, 0.5) })
+  vim.api.nvim_set_hl(0, 'ScopeLineNr', { fg = brighten(color, 0.25) })
 end
 
 local function clear(buf)
