@@ -19,19 +19,27 @@ assert(normal.bg == tonumber('000000', 16), 'Normal must use a true-black backgr
 assert(normal.fg == tonumber('F9FAFB', 16), 'Normal foreground does not match the palette')
 
 local cursor_line = vim.api.nvim_get_hl(0, { name = 'CursorLine', link = false })
-assert(cursor_line.bg == tonumber('151517', 16), 'CursorLine must be visibly raised above the black editor canvas')
+assert(cursor_line.bg == tonumber('142442', 16), 'CursorLine must use the dark blue focus surface')
 
 local selection = vim.api.nvim_get_hl(0, { name = 'Visual', link = false })
 assert(selection.bg == tonumber('283142', 16), 'Visual does not use the DeepSeek selection surface')
 
 local separator = vim.api.nvim_get_hl(0, { name = 'WinSeparator', link = false })
-assert(separator.fg == tonumber('353638', 16), 'WinSeparator does not use the visible gray divider')
+assert(separator.fg == tonumber('61666B', 16), 'WinSeparator does not use the visible gray divider')
 
 local float = vim.api.nvim_get_hl(0, { name = 'NormalFloat', link = false })
 assert(float.bg == tonumber('1B1B1C', 16), 'floating windows do not use the raised gray surface')
 
 local completion = vim.api.nvim_get_hl(0, { name = 'Pmenu', link = false })
 assert(completion.bg == tonumber('1B1B1C', 16), 'completion menus do not use the raised gray surface')
+
+for _, name in ipairs { 'TelescopeNormal', 'TelescopePromptNormal', 'BlinkCmpMenu', 'BlinkCmpDoc' } do
+  assert(vim.api.nvim_get_hl(0, { name = name, link = false }).bg == float.bg, name .. ' must share the floating panel surface')
+end
+for _, name in ipairs { 'FloatBorder', 'TelescopeBorder', 'TelescopePromptBorder', 'BlinkCmpMenuBorder', 'BlinkCmpDocBorder' } do
+  local border = vim.api.nvim_get_hl(0, { name = name, link = false })
+  assert(border.fg == separator.fg and border.bg == float.bg, name .. ' must use the shared gray panel border')
+end
 
 local sidebar = vim.api.nvim_get_hl(0, { name = 'NeoTreeNormal', link = false })
 assert(sidebar.bg == tonumber('0F0F0F', 16), 'the sidebar does not separate from the editor canvas')
@@ -55,9 +63,7 @@ local forbidden = { 'bold', 'italic', 'altfont', 'font' }
 for name, spec in pairs(vim.api.nvim_get_hl(0, { link = true })) do
   for _, attribute in ipairs(forbidden) do
     assert(spec[attribute] == nil, ('%s still defines %s'):format(name, attribute))
-    if type(spec.cterm) == 'table' then
-      assert(spec.cterm[attribute] == nil, ('%s still defines cterm.%s'):format(name, attribute))
-    end
+    if type(spec.cterm) == 'table' then assert(spec.cterm[attribute] == nil, ('%s still defines cterm.%s'):format(name, attribute)) end
   end
 end
 

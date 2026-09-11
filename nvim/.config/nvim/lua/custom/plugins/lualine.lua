@@ -30,6 +30,12 @@ end
 local filename = {
   'filename',
   path = 1,
+  color = 'WinBar',
+  -- Color the whole header, including its unused right-hand space.
+  fmt = function(value)
+    local symbol = navic_is_available() and current_function() or ''
+    return value .. (symbol ~= '' and ' | ' .. symbol or '') .. '%='
+  end,
   symbols = {
     modified = ' [+]',
     readonly = ' [-]',
@@ -78,10 +84,6 @@ return {
       lualine_b = {},
       lualine_c = {
         filename,
-        {
-          current_function,
-          cond = navic_is_available,
-        },
       },
       lualine_x = {},
       lualine_y = {},
@@ -90,7 +92,12 @@ return {
     inactive_winbar = {
       lualine_a = {},
       lualine_b = {},
-      lualine_c = { filename },
+      lualine_c = {
+        vim.tbl_extend('force', filename, {
+          color = 'WinBarNC',
+          fmt = function(value) return value .. '%=' end,
+        }),
+      },
       lualine_x = {},
       lualine_y = {},
       lualine_z = {},

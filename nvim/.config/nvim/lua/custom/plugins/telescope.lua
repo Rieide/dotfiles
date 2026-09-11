@@ -41,7 +41,7 @@ return {
           },
           flip_columns = 120,
         },
-        winblend = 10,
+        winblend = 0,
         initial_mode = 'insert',
         border = true,
         path_display = { 'smart' },
@@ -137,7 +137,7 @@ return {
       '<leader>/',
       function()
         builtin.current_buffer_fuzzy_find(themes.get_dropdown {
-          winblend = 10,
+          winblend = 0,
           previewer = false,
         })
       end,

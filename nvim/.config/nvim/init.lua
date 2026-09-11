@@ -184,9 +184,7 @@ vim.o.confirm = true
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
-vim.keymap.set('n', '<leader>tc', function()
-  vim.o.cursorcolumn = not vim.o.cursorcolumn
-end, { desc = '[T]oggle [C]ursor column' })
+vim.keymap.set('n', '<leader>tc', function() vim.o.cursorcolumn = not vim.o.cursorcolumn end, { desc = '[T]oggle [C]ursor column' })
 
 -- Diagnostic Config & Keymaps
 -- See `:help vim.diagnostic.Opts`
@@ -415,7 +413,7 @@ require('lazy').setup({
         title = true,
         title_pos = 'center',
         wo = {
-          winblend = 10,
+          winblend = 0,
         },
       },
       layout = {

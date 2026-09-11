@@ -24,6 +24,12 @@ Current migration state:
   on a true-black, DeepSeek-inspired neutral/blue palette
 - the colorscheme never selects a font face, bold, or italic style and leaves
   the embedded terminal ANSI palette to the host terminal
+- the black editor, gray navigation/header surfaces, and raised gray panels
+  share DeepSeek blue accents; the cursor line uses a dark blue background
+- the dark gray buffer bar (`#151517`), lighter gray file/function header
+  (`#2C2C2E`), and black code area are separated by their background levels
+- Telescope is opaque and shares its surface and border colors with completion
+  and diagnostic panels
 - Conform has format-on-save disabled; use `<leader>cf` for intentional manual
   formatting
 - clangd is configured with compile database warnings for C/C++ buffers
