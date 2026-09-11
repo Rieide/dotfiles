@@ -158,8 +158,8 @@ plugins {
         border_enabled "false"
         hide_frame_for_single_pane "false"
         tab_normal "#[fg=white] {index} {name} "
-        tab_active "#[fg=black,bg=blue,bold] {index} {name} "
-        tab_rename "#[fg=black,bg=yellow,bold] {index} {name} "
+        tab_active "#[fg=#000000,bg=blue,bold] {index} {name} "
+        tab_rename "#[fg=#000000,bg=yellow,bold] {index} {name} "
         tab_separator ""
         tab_zero_based_index "false"
     }

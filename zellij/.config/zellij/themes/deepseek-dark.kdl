@@ -1,15 +1,119 @@
+// Shared with nvim/.config/nvim/lua/custom/themes/deepseek_wave.lua:
+// canvas #000000, rail #0F0F0F, panel #1B1B1C, selection #283142,
+// divider #61666B, foreground #CFD3D6, accent #5686FE.
 themes {
     deepseek-dark {
-        fg 234 242 255
-        bg 13 27 42
-        black 8 17 31
-        red 255 123 135
-        green 86 134 254
-        yellow 255 209 102
-        blue 86 134 254
-        magenta 133 155 211
-        cyan 111 183 235
-        white 255 255 255
-        orange 255 184 107
+        text_unselected {
+            base 207 211 214
+            background 15 15 15
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
+        text_selected {
+            base 249 250 251
+            background 40 49 66
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
+        ribbon_unselected {
+            base 129 133 140
+            background 21 21 23
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 86 134 254
+            emphasis_3 247 173 49
+        }
+        ribbon_selected {
+            base 0 0 0
+            background 86 134 254
+            emphasis_0 0 0 0
+            emphasis_1 249 250 251
+            emphasis_2 0 0 0
+            emphasis_3 249 250 251
+        }
+        table_title {
+            base 86 134 254
+            background 27 27 28
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
+        table_cell_unselected {
+            base 207 211 214
+            background 27 27 28
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
+        table_cell_selected {
+            base 249 250 251
+            background 40 49 66
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
+        list_unselected {
+            base 207 211 214
+            background 27 27 28
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
+        list_selected {
+            base 249 250 251
+            background 40 49 66
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
+        frame_unselected {
+            base 97 102 107
+            background 0 0 0
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
+        frame_selected {
+            base 86 134 254
+            background 0 0 0
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
+        frame_highlight {
+            base 116 192 252
+            background 0 0 0
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
+        exit_code_success {
+            base 105 219 124
+            background 0 0 0
+            emphasis_0 86 134 254
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
+        exit_code_error {
+            base 242 90 90
+            background 0 0 0
+            emphasis_0 247 173 49
+            emphasis_1 249 250 251
+            emphasis_2 116 192 252
+            emphasis_3 247 173 49
+        }
     }
 }

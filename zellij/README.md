@@ -36,6 +36,11 @@ The choice is stored in `~/.local/state/zellij/theme-family`. The terminal's
 reported palette selects the dark or light member of the pair. Existing sessions
 are intentionally unchanged.
 
+The `deepseek-dark` component theme shares Neovim's black/gray surface hierarchy,
+gray dividers, and DeepSeek blue accent. Focused frames remain blue, while
+unfocused frames use the shared gray divider. Frame geometry is configured
+separately from these colors.
+
 The top tab bar uses `zjstatus` only for the tab list and displays plain numeric
 labels such as `1 nvim` and `2 shell`. The bottom bar remains Zellij's native
 `status-bar`, so its mode-specific which-key hints remain available without a
